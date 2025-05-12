@@ -1,4 +1,4 @@
-import { BrainCircuit, FileOutput, FileText } from 'lucide-react';
+import { BrainCircuit, FileOutput, FileText, MoveRight } from 'lucide-react';
 import { ReactNode } from "react";
 
 type Step = {
@@ -7,7 +7,7 @@ type Step = {
   description: string;
 };
 
-const steps: Steps[] = [
+const steps: Step[] = [
   {
     icon: <FileText size={64} strokeWidth={1.5} />,
     label: 'Upload your PDF',
@@ -50,8 +50,21 @@ export default function HowItWorksSection() {
         </div>
         <div className="grid grid-cols-1 md:grid-cols-3 ga-8 max-w-6xl mx-auto relative">
           {steps.map((step, index) => (
-            <StepItem key={index} {...step} />
-            
+            <div className="relative flex items-stretch" key={index}>
+              <StepItem  {...step} />
+
+              {index < steps.length - 1 && (
+                <div className="hidden md:block absolute top-1/2 -right-4 transform -translate-y-1/2 z-10">
+                  <MoveRight
+                    size={32}
+                    strokeWidth={1}
+                    className="text-rose-400"
+                  />
+              </div>
+          )}
+            </div>
+           
+
           ))}
         </div>
       </div>
