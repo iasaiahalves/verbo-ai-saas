@@ -1,6 +1,6 @@
 'use client';
-
 import UploadFormInput from "@/components/upload/upload-form-input";
+import { useUploadThing } from "@/utils/uploadthing";
 import { z } from "zod";
 
 
@@ -16,7 +16,20 @@ const schema = z.object({
 
 
 export default function UploadForm() {
-  const handleSubmit = (e: React.FormEvent<HTMLFormElement>) => {
+   
+  const { startUpload, routeConfig } = useUploadThing("pdfUploader", {
+    onClientUploadComplete: () => {
+      console.log("uploaded successfully!");
+    },
+    onUploadError: (err) => {
+      console.error("error occurred while uploading", err);
+    },
+    onUploadBegin: ({ file }) => {
+      console.log("upload has begun for", file);
+    },
+  });
+
+  const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
     console.log('submitted');
     const formData = new FormData(e.currentTarget);
@@ -32,9 +45,12 @@ export default function UploadForm() {
       return;
     }
 
-    //2:54:05 YT
-    // schema with zod
     //upload the file to uploadthing
+    const resp = await startUpload([file]);
+    if (!resp) {
+      return;
+    }
+
     //parse the pdf using lang chain 
     //summarize the pdf using AI
     //save the summary to the database 
