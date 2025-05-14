@@ -1,10 +1,11 @@
 'use server';
 
 import { getDbConnection } from "@/lib/db";
-import { generateSummaryFromGemini } from "@/lib/geminiai";
 import { fetchAndExtractPdfText } from "@/lib/langchain";
+import { generateSummaryFromOpenRouter } from "@/lib/openai";
 import { formatFileNameAsTitle } from "@/utils/format-utils";
 import { auth } from "@clerk/nextjs/server";
+import { revalidatePath } from "next/cache";
 
 
 interface PdfSummaryType{
@@ -54,14 +55,14 @@ export async function generatePdfSummary(uploadResponse: [{
 
     let summary;
     try {
-      summary = await generateSummaryFromGemini(pdfText);
+      summary = await generateSummaryFromOpenRouter(pdfText);
       console.log({ summary });
     } catch (error) {
       console.log(error);
       //call gemini
       if (error instanceof Error && error.message === 'RATE_LIMIT_EXCEEDED') {
         try {
-          summary = await generateSummaryFromGemini(pdfText);
+          summary = await generateSummaryFromOpenRouter(pdfText);
         } catch (geminiError) {
           console.error('Gemini API failed after OpenAI quote exceeded', geminiError);
         }
@@ -159,15 +160,20 @@ export async function storePdfSummaryAction({
         message: 'Failed to save PDF summary, please try again...',
       }
     }
-    return {
-      success: true,
-      message: 'PDF summary saved successfully',
-    }
+    
   } catch (error) {
     return {
       success: false,
       message: error instanceof Error ? error.message : 'Error saving PDF summary',
+      //4:19:50
       
     };
   }
+
+  //Revalidate our cache
+  revalidatePath(`/summaries/${savedSummary.id}`);
+  return {
+      success: true,
+      message: 'PDF summary saved successfully',
+    }
 }
