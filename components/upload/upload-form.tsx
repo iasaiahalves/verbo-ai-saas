@@ -2,6 +2,7 @@
 import { generatePdfSummary, storePdfSummaryAction } from "@/actions/upload-actions";
 import UploadFormInput from "@/components/upload/upload-form-input";
 import { useUploadThing } from "@/utils/uploadthing";
+import { useRouter } from "next/navigation";
 import { useRef, useState } from "react";
 import { toast } from "sonner";
 import { z } from "zod";
@@ -19,6 +20,7 @@ const schema = z.object({
 export default function UploadForm() {
   const formRef = useRef<HTMLFormElement>(null);
   const [isLoading, setIsLoading] = useState(false);
+  const router = useRouter();
 
   const { startUpload, routeConfig } = useUploadThing("pdfUploader", {
     onClientUploadComplete: () => {
@@ -111,7 +113,8 @@ export default function UploadForm() {
           description: 'Your summary has been saved!',
         });
           
-        formRef.current?.reset(); // Note: there was a typo 'rest()' here
+        formRef.current?.reset();
+        router.push(`/summaries/${storeResult.data.id}`);
       } else {
         toast.error('Processing failed', {
           description: message || 'Unable to generate a summary for this PDF',
@@ -129,9 +132,11 @@ export default function UploadForm() {
         description: 'Please try again later',
       });
       formRef.current?.reset();
+     } finally { 
       setIsLoading(false);
+
     }
-    console.log('submitted');
+    
   };
   
   return (
