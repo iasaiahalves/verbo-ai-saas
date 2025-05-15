@@ -9,6 +9,7 @@ import { auth } from "@clerk/nextjs/server";
 import { revalidatePath } from "next/cache";
 
 
+
 interface PdfSummaryType{
   userId?: string;
   fileUrl: string;
@@ -56,14 +57,14 @@ export async function generatePdfSummary(uploadResponse: [{
 
     let summary;
     try {
-      summary = await generateSummaryFromOpenRouterDeepSeek(pdfText);
+      summary = await generateSummaryFromOpenRouter(pdfText);
       console.log({ summary });
     } catch (error: any) {
       console.log(error);
       //call llama
       if (error instanceof Error && error.message === 'RATE_LIMIT_EXCEEDED' || error.message === 'CONTENT_TOO_LONG' || error.message === 'REQUEST_TIMEOUT') {
         try {
-          summary = await generateSummaryFromOpenRouter(pdfText);
+          summary = await generateSummaryFromOpenRouterDeepSeek(pdfText);
         } catch (llamaError) {
           console.error('Llama-3 API failed after Deepseek quote exceeded', llamaError);
         }
@@ -108,8 +109,8 @@ async function savePdfsummary({ userId, fileUrl, summary, title, fileName }: {
 }) {
   //sql inserting pdf summary
   try {
-    const sql = await getDbConnection();
-    await sql`
+    const sql = await getDbConnection(); // Assuming sql is a tagged template literal function like from 'postgres'
+    const rows = await sql`
     INSERT INTO pdf_summaries(
     user_id,
     original_file_url,
@@ -122,7 +123,14 @@ async function savePdfsummary({ userId, fileUrl, summary, title, fileName }: {
      ${summary},
      ${title},
      ${fileName}
-    )`;
+    ) RETURNING id, summary_text`;
+
+    // Check if any rows were returned and return the first one
+    if (rows && rows.length > 0) {
+      return rows[0]; // This will be an object like { id: '...', summary_text: '...' }
+    }
+    // If no rows are returned, it means the insert might have failed silently or RETURNING didn't work as expected.
+    return null; // Or throw an error: throw new Error("Failed to save summary to database or retrieve ID.");
   } catch (error) {
     console.error('Error saving PDF summary', error);
     throw error;
@@ -155,7 +163,7 @@ export async function storePdfSummaryAction({
       title,
       fileName,
     });
-    if (!savedSummary) {
+    if (!savedSummary || !savedSummary.id) { // Ensure savedSummary and its id exist
       return {
         success: false,
         message: 'Failed to save PDF summary, please try again...',
@@ -172,12 +180,12 @@ export async function storePdfSummaryAction({
   }
 
   //Revalidate our cache
-  revalidatePath(`/summaries/${savedSummary.id}`);
+  revalidatePath(`/summaries/${savedSummary.id}`); // Now savedSummary.id should be reliably available
   return {
       success: true,
     message: 'PDF summary saved successfully',
     data: {
-        id: savedSummary.id,
+        id: savedSummary.id, // Accessing id from the returned row object
       }
     }
 }
