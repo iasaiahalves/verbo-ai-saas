@@ -34,8 +34,8 @@ export default function UploadForm() {
       });
       setIsLoading(false);
     },
-    onUploadBegin: ({ file }) => { // 'file' here is the filename (string)
-      console.log("upload has begun for", file);
+    onUploadBegin: (fileName: string) => { // 'fileName' here is the filename (string)
+      console.log("upload has begun for", fileName);
     },
   });
 
@@ -87,7 +87,15 @@ export default function UploadForm() {
       });
 
       // Parse the pdf using lang chain
-      const result = await generatePdfSummary(resp);
+      const result = await generatePdfSummary([{
+        serverData: {
+          userId: resp[0]?.serverData?.userId || '',
+          file: {
+            url: resp[0]?.serverData?.file?.url || '',
+            name: resp[0]?.serverData?.file?.name || '',
+          },
+        },
+      }]);
       
       // Dismiss the processing toast
       toast.dismiss(processingToastId);
@@ -114,7 +122,13 @@ export default function UploadForm() {
         });
           
         formRef.current?.reset();
-        router.push(`/summaries/${storeResult.data.id}`);
+        if (storeResult.data?.id) {
+          router.push(`/summaries/${storeResult.data.id}`);
+        } else {
+          toast.error('Failed to save summary', {
+            description: 'Unable to retrieve summary ID',
+          });
+        }
       } else {
         toast.error('Processing failed', {
           description: message || 'Unable to generate a summary for this PDF',

@@ -2,7 +2,7 @@ import { SUMMARY_SYSTEM_PROMPT } from '@/utils/prompts'; // Assuming you still h
 import OpenAI from 'openai';
 
 // Access your OpenRouter API key as an environment variable
-const OPENROUTER_API_KEY = process.env.DEEPSEEK_API_KEY || '';
+const OPENROUTER_API_KEY = process.env.LLAMA_API_KEY || '';
 
 // Maximum content length to send in a single request
 // Adjust based on Llama 3.1's context window and OpenRouter's limits
@@ -14,7 +14,7 @@ const openai = new OpenAI({
   apiKey: OPENROUTER_API_KEY, // Use your OpenRouter API key
 });
 
-export async function generateSummaryFromOpenRouterDeepSeek(pdfText: string) { // Renamed function
+export async function generateSummaryFromOpenRouterLLM(pdfText: string) { // Renamed function
   try {
     let finalSummary = '';
 
@@ -73,14 +73,14 @@ export async function generateSummaryFromOpenRouterDeepSeek(pdfText: string) { /
 async function processSingleChunk(chunkText: string, customInstruction?: string) {
    // Create a controller for timeout handling
   const controller = new AbortController();
-  const timeoutId = setTimeout(() => controller.abort(), 120000); // 120 second timeout (adjust as needed)
+  const timeoutId = setTimeout(() => controller.abort(), 60000); // 60 second timeout (adjust as needed)
 
   try {
     const instruction = customInstruction ||
       `Transform this document into an engaging, easy-to-read summary with contextually relevant emojis and proper markdown formatting:`;
 
     const completion = await openai.chat.completions.create({
-      model: 'deepseek/deepseek-chat-v3-0324:free',
+      model: 'meta-llama/llama-3.1-8b-instruct:free', // Specify Llama 3.1 model from OpenRouter
       messages: [
         {
           role: 'system',
@@ -92,7 +92,7 @@ async function processSingleChunk(chunkText: string, customInstruction?: string)
         },
       ],
       temperature: 0.7,
-      max_tokens: 1500,
+      max_tokens: 2000, // Adjust as needed for Llama 3.1
     }, { signal: controller.signal }); // Pass the signal for timeout
 
     const generatedText = completion.choices[0].message.content;
