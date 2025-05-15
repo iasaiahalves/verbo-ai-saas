@@ -1,6 +1,7 @@
 'use server';
 
 import { getDbConnection } from "@/lib/db";
+import { generateSummaryFromOpenRouterDeepSeek } from "@/lib/deepseekai";
 import { fetchAndExtractPdfText } from "@/lib/langchain";
 import { generateSummaryFromOpenRouter } from "@/lib/openai";
 import { formatFileNameAsTitle } from "@/utils/format-utils";
@@ -55,16 +56,16 @@ export async function generatePdfSummary(uploadResponse: [{
 
     let summary;
     try {
-      summary = await generateSummaryFromOpenRouter(pdfText);
+      summary = await generateSummaryFromOpenRouterDeepSeek(pdfText);
       console.log({ summary });
-    } catch (error) {
+    } catch (error: any) {
       console.log(error);
-      //call gemini
-      if (error instanceof Error && error.message === 'RATE_LIMIT_EXCEEDED') {
+      //call llama
+      if (error instanceof Error && error.message === 'RATE_LIMIT_EXCEEDED' || error.message === 'CONTENT_TOO_LONG' || error.message === 'REQUEST_TIMEOUT') {
         try {
           summary = await generateSummaryFromOpenRouter(pdfText);
-        } catch (geminiError) {
-          console.error('Gemini API failed after OpenAI quote exceeded', geminiError);
+        } catch (llamaError) {
+          console.error('Llama-3 API failed after Deepseek quote exceeded', llamaError);
         }
         throw new Error('Failed to generate summary with available AI providers')
       }
