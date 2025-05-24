@@ -6,6 +6,7 @@ import { useRouter } from "next/navigation";
 import { useRef, useState } from "react";
 import { toast } from "sonner";
 import { z } from "zod";
+import LoadingSkeleton from "./loading-skeleton";
 
 const schema = z.object({
   file: z.instanceof(File, { message: 'Invalid file' })
@@ -103,9 +104,9 @@ export default function UploadForm() {
       const { data = null, message = null } = result || {};
 
       if (data && data.summary) {
-        // Create a new toast ID for saving
+        // Create a new toast ID for saving with redirect message
         const savingToastId = toast.loading('Saving PDF...', {
-          description: 'Hang tight! We are saving your summary!',
+          description: 'Hang tight! We are saving your summary and redirecting you...',
         });
    
         const storeResult = await storePdfSummaryAction({
@@ -115,47 +116,78 @@ export default function UploadForm() {
           fileName: file.name,
         });
           
-        // Dismiss the saving toast and show success
+        // Dismiss the saving toast
         toast.dismiss(savingToastId);
-        toast.success('Summary saved!', {
-          description: 'Your summary has been saved!',
-        });
-          
+        
+        // Reset form immediately
         formRef.current?.reset();
+        
         if (storeResult.data?.id) {
+          // Show success toast that will persist during navigation
+          toast.success('Summary saved! Redirecting...', {
+            description: 'Taking you to your summary now!',
+            duration: 2000, // Shorter duration since we're redirecting
+          });
+          
+          // Immediate redirect without waiting
           router.push(`/summaries/${storeResult.data.id}`);
+          
+          // Alternative: Use router.replace for a cleaner navigation history
+          // router.replace(`/summaries/${storeResult.data.id}`);
         } else {
           toast.error('Failed to save summary', {
             description: 'Unable to retrieve summary ID',
           });
+          setIsLoading(false);
         }
       } else {
         toast.error('Processing failed', {
           description: message || 'Unable to generate a summary for this PDF',
         });
+        setIsLoading(false);
       }
-
-      setIsLoading(false);
       
-      // You might want to add redirection code here
-      // redirect to the individual summary page
-
     } catch (error) {
       console.error('Error occurred', error);
       toast.error('An unexpected error occurred', {
         description: 'Please try again later',
       });
       formRef.current?.reset();
-     } finally { 
       setIsLoading(false);
-
     }
-    
   };
   
   return (
     <div className="flex flex-col gap-8 w-full max-w-2xl mx-auto">
+        <div className="relative">
+        <div className="absolute inset-0 flex items-center" aria-hidden="true">
+          <div className="w-full border-t border-gray-200 dark:border-gray-800" />
+        </div>
+        <div className="relative flex justify-center">
+          <span className="bg-background px-3 text-muted-foreground text-sm">
+            Upload PDF
+          </span>
+        </div>
+      </div>
       <UploadFormInput isLoading={isLoading} ref={formRef} onSubmit={handleSubmit} />
+      {isLoading && (
+        <>
+        <div className="relative">
+          <div
+            className="absolute inset-0 flex items-center"
+            aria-hidden="true"
+          >
+            <div className="w-full border-t border-gray-200 dark:border-gray-800" />
+          </div>
+          <div className="relative flex justify-center">
+            <span className="bg-background px-3 text-muted-foreground text-sm">
+              Processing
+            </span>
+          </div>
+          </div>
+          <LoadingSkeleton />
+        </>
+      )}
     </div>
   );
 }
