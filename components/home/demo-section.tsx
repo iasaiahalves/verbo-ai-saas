@@ -1,4 +1,8 @@
-import { Pizza } from "lucide-react"
+import { SummaryViewer } from "@/components/summaries/summary-viewer"; // Adjust path as needed
+import { DEMO_SUMMARY } from "@/lib/demo_summary"; // Adjust path as needed
+import { Pizza } from "lucide-react";
+import { MotionDiv, MotionH3 } from "../common/motion-wrapper";
+
 export default function DemoSection() {
   return (
     <section className="relative">
@@ -23,13 +27,24 @@ export default function DemoSection() {
           <div className="inline-flex items-center justify-center p-2 rounded-2xl bg-gray-1--/80 backdrop-blur-xs border border-gray-500/20 mb-4">
               <Pizza className="w-6 h-6 text-rose-500" />
           </div>
-          <div className="text-center mb-16 ">
-              <h3 className="font-bold text-3xl max-w-2xl mx-auto px-4 sm:px-6">
-            Watch how Verbo transforms <span className="bg-linear-to-r from-rose-500 to-rose-700 bg-clip-text text-transparent">this Next.js course PDF</span>{' '} into an easy-to-read summary!
-          </h3>
+          <div  className="text-center mb-16 ">
+            <MotionH3
+              initial={{ y: 20, opacity: 0 }}
+              whileInView={{ y: 0, opacity: 1 }}
+              transition={{ duration: 0.5, delay: 0.2 }}
+              className="font-bold text-3xl max-w-2xl mx-auto px-4 sm:px-6">
+            Watch how Verbo transforms <span className="bg-linear-to-r from-rose-500 to-rose-700 bg-clip-text text-transparent">this Aerodynamics PDF</span>{' '} into an easy-to-read summary!
+          </MotionH3>
           </div>
           <div className="flex-justify-center items-center px-2 sm:px-4 lg:px-6">
-          {/* Summary Viewer */}
+            {/* Summary Viewer */}
+            <MotionDiv
+              initial={{ opacity: 0 }}
+              whileInView={{ opacity: 1 }}
+              transition={{duration: 0.5}}>
+              <SummaryViewer summary={DEMO_SUMMARY} />
+            </MotionDiv>
+          
           </div>
         </div>
       </div>
