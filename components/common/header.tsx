@@ -1,6 +1,8 @@
 import { SignedIn, SignedOut, UserButton } from '@clerk/nextjs';
 import { FileText } from 'lucide-react';
+import { ChatNavLink } from './chat-nav-link';
 import NavLink from './nav-link';
+
 export default function Header() {
   return (
     <nav className="container flex items-center justify-between py-4 lg:px-8 px-2 mx-auto">
@@ -14,15 +16,13 @@ export default function Header() {
           </span>
         </NavLink>
       </div>
-    
       <div className="flex lg:justify-center gap-4 lg:gap-12 lg:items-center">
         <NavLink href="/#pricing">Pricing</NavLink>
         <SignedIn>
           <NavLink href="/dashboard">
-            
             Your Summaries
-          
           </NavLink>
+          <ChatNavLink />
         </SignedIn>
         
       </div>

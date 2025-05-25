@@ -42,7 +42,7 @@ export default function DemoSection() {
               initial={{ opacity: 0 }}
               whileInView={{ opacity: 1 }}
               transition={{duration: 0.5}}>
-              <SummaryViewer summary={DEMO_SUMMARY} />
+              <SummaryViewer summary={DEMO_SUMMARY} className="mx-auto" />
             </MotionDiv>
           
           </div>

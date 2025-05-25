@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import { Card } from "../ui/card";
+import { ChatOption } from "./chat-option";
 import ContentSection from "./content-section";
 import { NavigationControls } from "./navigation-controls";
 import ProgressBar from "./progress-bar";
@@ -16,8 +17,16 @@ const SectionTitle = ({ title }: { title: string }) => {
   );
 };
 
-export function SummaryViewer({ summary }: { summary: string }) {
+interface SummaryViewerProps {
+  summary: string;
+  pdfSummaryId?: string; // Make pdfSummaryId optional
+  summaryId?: string; // For backward compatibility
+  className?: string; // Add className for styling
+}
+
+export function SummaryViewer({ summary, pdfSummaryId, summaryId, className }: SummaryViewerProps) {
   const [currentSection, setCurrentSection] = useState(0);
+  const effectiveSummaryId = pdfSummaryId || summaryId; // Use whichever is provided
 
   const handleNext = () => setCurrentSection((prev) => Math.min(prev + 1, sections.length - 1));
   const handlePrevious = () => setCurrentSection((prev) => Math.max(prev - 1, 0));
@@ -36,9 +45,9 @@ export function SummaryViewer({ summary }: { summary: string }) {
     .filter((section) => section.title && section.points.length > 0); // Filter out empty sections
 
   return (
-    <Card className="relative px-2 h-[500px] sm:h-[600px] lg:h-[700px]
+    <Card className={`relative px-2 h-[500px] sm:h-[600px] lg:h-[700px]
     w-full xl:w-[600px] overflow-hidden bg-gradient-to-br from-background via-background/95 to-rose-500/5 backdrop-blur-lg shadow-2xl rounded-3xl border border-rose-500/10
-    flex flex-col">
+    flex flex-col ${className}`}>
       {/* ProgressBar at the top */}
       <ProgressBar
         sections={sections}
@@ -68,6 +77,11 @@ export function SummaryViewer({ summary }: { summary: string }) {
         onNext={handleNext}
         onSectionSelect={setCurrentSection}
       />
+
+    {/* ChatOption positioned above NavigationControls, but only in summary view (not chat view) */}
+      {effectiveSummaryId && (
+        <ChatOption pdfSummaryId={effectiveSummaryId} className="bottom-24 right-4 sm:bottom-28" />
+      )}
     </Card>
   );
 }

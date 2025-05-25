@@ -1,7 +1,9 @@
+import { PDFChatSection } from "@/components/chat/pdf-chat-section";
 import BgGradient from "@/components/common/bg-gradient";
 import { SourceInfo } from "@/components/summaries/source-info";
 import { SummaryHeader } from "@/components/summaries/summary-header";
 import { SummaryViewer } from "@/components/summaries/summary-viewer";
+import { getChatsByPdfSummaryId } from "@/lib/chat";
 import { getSummaryById } from "@/lib/summaries";
 import { FileText } from "lucide-react";
 import { notFound } from "next/navigation";
@@ -18,6 +20,10 @@ export default async function SummaryPage(props: {
   if (!summary) {
     notFound();
   }
+  
+  // Fetch chats for this PDF summary
+  const chats = await getChatsByPdfSummaryId(id);
+  
   const {
     title,
     summary_text,
@@ -55,17 +61,22 @@ export default async function SummaryPage(props: {
             
               <div className="absolute inset-0 bg-linear-to-br from-rose-50/50 via-orange-50/30 to-transparent opacity-50 rounded-2xl sm:rounded-3xl" />
 
-              <div className="absolute top-2 sm:top-4 right-2 sm:right-4 flex items-center gap-1.5 sm:gap-2 text-xs sm:text-sm text-muted-foreground bg-white/90 px-2 sm:px-3 py-1 sm:py-1.5 rounded-full shadow-xs">
-                <FileText className="h-3 w-3 sm:h-4 sm:w-4 text-rose-400" />
+              <div className="absolute top-2 sm:top-4 right-2 sm:right-4 flex items-center gap-1.5 sm:gap-2 text-xs sm:text-sm text-muted-foreground bg-white/90 px-2 sm:px-3 py-1 sm:py-1.5 rounded-full shadow-xs">                <FileText className="h-3 w-3 sm:h-4 sm:w-4 text-rose-400" />
                 {word_count?.toLocaleString()} words
-              </div>
-
-              <div className="relative mt-8 sm:mt-6 flex justify-center">
-                  <SummaryViewer summary={summary.summary_text} />
+              </div>              <div className="relative mt-8 sm:mt-6 flex justify-center">
+                  <SummaryViewer summary={summary_text} pdfSummaryId={id} />
               </div>
             
             </div>
 
+          </div>
+          
+          {/* Chat section */}
+          <div className="mt-8 sm:mt-12">
+            <PDFChatSection 
+              pdfSummaryId={id}
+              initialChats={chats as any}
+            />
           </div>
         </div>
       </div>
