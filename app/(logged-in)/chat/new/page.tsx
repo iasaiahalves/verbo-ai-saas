@@ -3,7 +3,7 @@
 import { useNavigation } from '@/components/common/navigation-progress';
 import { createChat } from '@/lib/chat';
 import { useRouter, useSearchParams } from 'next/navigation';
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 
 export default function NewChatPage() {
   const router = useRouter();
@@ -13,15 +13,18 @@ export default function NewChatPage() {
   const showSummary = searchParams.get('showSummary') === 'true';
   const [isCreating, setIsCreating] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const hasInitiatedRef = useRef(false);
 
   useEffect(() => {
+    // Prevent multiple executions of the effect
+    if (hasInitiatedRef.current) return;
+    hasInitiatedRef.current = true;
+    
     if (!pdfSummaryId) {
       setError('No PDF summary ID provided');
       setIsCreating(false);
       return;
-    }
-
-    async function createNewChat() {
+    }    async function createNewChat() {
       try {
         // First check if the user already has chats for this PDF
         const existingChats = await fetch(`/api/chats?pdfSummaryId=${pdfSummaryId}`).then(res => res.json());
@@ -33,6 +36,9 @@ export default function NewChatPage() {
           return;
         }
         
+        // Add a small delay to prevent race conditions
+        await new Promise(resolve => setTimeout(resolve, 100));
+        
         // Only create a new chat if none exists
         const title = `Chat about PDF - ${new Date().toLocaleString()}`;
         const chat = await createChat(pdfSummaryId as string, title);
@@ -43,11 +49,15 @@ export default function NewChatPage() {
         console.error('Failed to create chat:', error);
         setError('Failed to create a new chat. Please try again.');
         setIsCreating(false);
-      }
-    }
+      }    }
 
     createNewChat();
-  }, [pdfSummaryId, router, showSummary, startNavigation]);
+
+    // Cleanup function to prevent memory leaks
+    return () => {
+      hasInitiatedRef.current = false;
+    };
+  }, []); // Empty dependency array to ensure this only runs once
 
   return (
     <div className="flex items-center justify-center min-h-screen">

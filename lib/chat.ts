@@ -46,6 +46,22 @@ export async function createChat(pdfSummaryId: string, title: string) {
   }
 
   const sql = await getDbConnection();
+  
+  // First check if a chat with this title already exists for this PDF
+  const existingChats = await sql`
+    SELECT * FROM pdf_chats 
+    WHERE user_id = ${userId} 
+    AND pdf_summary_id = ${pdfSummaryId} 
+    AND LOWER(title) = LOWER(${title})
+    LIMIT 1
+  `;
+
+  // If a chat with this title already exists, return it instead of creating a duplicate
+  if (existingChats.length > 0) {
+    return existingChats[0];
+  }
+
+  // Otherwise create a new chat
   const [chat] = await sql`
     INSERT INTO pdf_chats (user_id, pdf_summary_id, title)
     VALUES (${userId}, ${pdfSummaryId}, ${title})

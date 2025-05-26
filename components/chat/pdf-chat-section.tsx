@@ -4,7 +4,7 @@ import { useNavigation } from '@/components/common/navigation-progress';
 import { Card } from '@/components/ui/card';
 import { MessageSquare } from 'lucide-react';
 import { useRouter } from 'next/navigation';
-import { useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import { Button } from '../ui/button';
 
 export function PDFChatSection({
@@ -17,21 +17,45 @@ export function PDFChatSection({
   const router = useRouter();
   const { startNavigation } = useNavigation();
   const [isNavigating, setIsNavigating] = useState(false);
+  const navigatingRef = useRef(false);
+  const lastClickTimeRef = useRef(0);
+  
+  // Clean up effect to reset the ref when component unmounts
+  useEffect(() => {
+    return () => {
+      navigatingRef.current = false;
+    };
+  }, []);
 
-  const handleAskQuestions = () => {
+  // Use useCallback to ensure the function doesn't get recreated on every render
+  const handleAskQuestions = useCallback(() => {
+    // Debounce check - prevent rapid clicks
+    const now = Date.now();
+    if (now - lastClickTimeRef.current < 500) {
+      return;
+    }
+    lastClickTimeRef.current = now;
+    
+    // Prevent duplicate navigation
+    if (isNavigating || navigatingRef.current) return;
+    
     setIsNavigating(true);
+    navigatingRef.current = true;
     startNavigation();
     
-    // Check if there are existing chats for this PDF
-    if (initialChats && initialChats.length > 0) {
-      // Use the most recent chat instead of creating a new one
-      const mostRecentChat = initialChats[0]; // Assuming they're sorted by updated_at DESC
-      router.push(`/chat/${mostRecentChat.id}?showSummary=true`);
-    } else {
-      // Only create a new chat if none exists
-      router.push(`/chat/new?pdfSummaryId=${pdfSummaryId}&showSummary=true`);
-    }
-  };
+    // Wrap in setTimeout to further prevent duplicate executions
+    setTimeout(async () => {
+      // Check if there are existing chats for this PDF
+      if (initialChats && initialChats.length > 0) {
+        // Use the most recent chat instead of creating a new one
+        const mostRecentChat = initialChats[0]; // Assuming they're sorted by updated_at DESC
+        router.replace(`/chat/${mostRecentChat.id}?showSummary=true`);
+      } else {
+        // Only create a new chat if none exists
+        router.replace(`/chat/new?pdfSummaryId=${pdfSummaryId}&showSummary=true`);
+      }
+    }, 50);
+  }, [initialChats, isNavigating, pdfSummaryId, router, startNavigation]);
   return (
     <Card className="p-6">
       <div className="flex items-center justify-between mb-6">

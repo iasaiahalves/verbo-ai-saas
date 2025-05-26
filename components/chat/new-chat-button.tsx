@@ -6,7 +6,7 @@ import { Input } from '@/components/ui/input';
 import { createChat } from '@/lib/chat';
 import { Loader2, MessageSquarePlus } from 'lucide-react';
 import { useRouter } from 'next/navigation';
-import { useState } from 'react';
+import { useRef, useState } from 'react';
 
 export function NewChatButton({
   pdfSummaryId,
@@ -20,12 +20,14 @@ export function NewChatButton({
   const [title, setTitle] = useState('');
   const router = useRouter();
   const { startNavigation } = useNavigation();
+  const formSubmittedRef = useRef(false);
 
   const handleCreateChat = async (e: React.FormEvent) => {
     e.preventDefault();
     
-    if (!title.trim() || isCreating) return;
+    if (!title.trim() || isCreating || formSubmittedRef.current) return;
     
+    formSubmittedRef.current = true;
     setIsCreating(true);
     
     try {
@@ -34,10 +36,8 @@ export function NewChatButton({
       // Start navigation indicator and set navigating state
       startNavigation();
       setIsNavigating(true);
-      
-      // Navigate to the new chat
-      router.push(`/chat/${chat.id}`);
-      router.refresh();
+        // Navigate to the new chat
+      router.replace(`/chat/${chat.id}`);
 
       // Call the callback after successful creation
       if (onChatCreated) {
@@ -46,6 +46,7 @@ export function NewChatButton({
     } catch (error) {
       console.error('Error creating chat:', error);
       alert('Failed to create a new chat. Please try again.');
+      formSubmittedRef.current = false;
       setIsCreating(false);
       setIsNavigating(false);
     }
@@ -80,9 +81,12 @@ export function NewChatButton({
             Cancel
           </Button>
         </form>
-      ) : (
-        <Button 
-          onClick={() => setIsCreating(true)} 
+      ) : (        <Button 
+          onClick={() => {
+            if (!isCreating) {
+              setIsCreating(true);
+            }
+          }} 
           className="w-full"
           variant="outline"
         >

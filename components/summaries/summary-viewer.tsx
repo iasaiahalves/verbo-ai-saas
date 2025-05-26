@@ -76,11 +76,13 @@ export function SummaryViewer({ summary, pdfSummaryId, summaryId, className }: S
         onPrevious={handlePrevious}
         onNext={handleNext}
         onSectionSelect={setCurrentSection}
-      />
-
-    {/* ChatOption positioned above NavigationControls, but only in summary view (not chat view) */}
+      />    {/* ChatOption positioned above NavigationControls, but only in summary view (not chat view) */}
       {effectiveSummaryId && (
-        <ChatOption pdfSummaryId={effectiveSummaryId} className="bottom-24 right-4 sm:bottom-28" />
+        <ChatOption 
+          key={`chat-option-${effectiveSummaryId}`} 
+          pdfSummaryId={effectiveSummaryId} 
+          className="bottom-24 right-4 sm:bottom-28" 
+        />
       )}
     </Card>
   );
