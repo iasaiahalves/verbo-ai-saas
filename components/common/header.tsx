@@ -2,10 +2,14 @@
 
 import { SignedIn, SignedOut, UserButton } from '@clerk/nextjs';
 import { FileText } from 'lucide-react';
+import { usePathname } from 'next/navigation';
 import { ChatNavLink } from './chat-nav-link';
 import NavigationLink from './navigation-link';
 
 export default function Header() {
+  const pathname = usePathname();
+  const isHomePage = pathname === '/';
+
   return (
     <nav className="container flex items-center justify-between py-4 lg:px-8 px-2 mx-auto">      <div className="flex lg:flex-1">
         <NavigationLink href="/" className="flex items-center gap-1 lg:gap-2 shrink-0">
@@ -26,23 +30,23 @@ export default function Header() {
       </div><div className="flex lg:justify-end lg:flex-1">
         <SignedIn>
           <div className="flex gap-2 items-center">
-            <NavigationLink href="/upload" className="">
-              Upload a PDF
-            </NavigationLink>
+            {!isHomePage && (
+              <NavigationLink href="/upload" className="">
+                Upload a PDF
+              </NavigationLink>
+            )}
             <div>
               Pro
             </div>
             <SignedIn>
               <UserButton />
             </SignedIn>
-           </div>
+          </div>
         </SignedIn>
-       
-       
+        
         <SignedOut>
           <NavigationLink href="/sign-in">Sign In</NavigationLink>
         </SignedOut>
-      
       </div>
     </nav>
   );
