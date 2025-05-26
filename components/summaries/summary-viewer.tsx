@@ -2,7 +2,6 @@
 
 import { useState } from "react";
 import { Card } from "../ui/card";
-import { ChatOption } from "./chat-option";
 import ContentSection from "./content-section";
 import { NavigationControls } from "./navigation-controls";
 import ProgressBar from "./progress-bar";
@@ -67,23 +66,14 @@ export function SummaryViewer({ summary, pdfSummaryId, summaryId, className }: S
             points={sections[currentSection]?.points || []}
           />
         </div>
-      </div>
-
-      {/* NavigationControls at the bottom */}
+      </div>      {/* NavigationControls at the bottom */}
       <NavigationControls
         currentSection={currentSection}
         totalSections={sections.length}
         onPrevious={handlePrevious}
         onNext={handleNext}
         onSectionSelect={setCurrentSection}
-      />    {/* ChatOption positioned above NavigationControls, but only in summary view (not chat view) */}
-      {effectiveSummaryId && (
-        <ChatOption 
-          key={`chat-option-${effectiveSummaryId}`} 
-          pdfSummaryId={effectiveSummaryId} 
-          className="bottom-24 right-4 sm:bottom-28" 
-        />
-      )}
+      />
     </Card>
   );
 }

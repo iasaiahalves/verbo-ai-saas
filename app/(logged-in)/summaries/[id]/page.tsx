@@ -67,12 +67,10 @@ export default async function SummaryPage(props: {
                   <SummaryViewer summary={summary_text} pdfSummaryId={id} />
               </div>
             
-            </div>
-
-          </div>
+            </div>          </div>
           
           {/* Chat section */}
-          <div className="mt-8 sm:mt-12">
+          <div className="mt-8 sm:mt-12 max-w-4xl mx-auto">
             <PDFChatSection 
               pdfSummaryId={id}
               initialChats={chats as any}
