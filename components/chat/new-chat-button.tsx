@@ -1,9 +1,10 @@
 'use client';
 
+import { useNavigation } from '@/components/common/navigation-progress';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { createChat } from '@/lib/chat';
-import { MessageSquarePlus } from 'lucide-react';
+import { Loader2, MessageSquarePlus } from 'lucide-react';
 import { useRouter } from 'next/navigation';
 import { useState } from 'react';
 
@@ -15,8 +16,10 @@ export function NewChatButton({
   onChatCreated?: () => void;
 }) {
   const [isCreating, setIsCreating] = useState(false);
+  const [isNavigating, setIsNavigating] = useState(false);
   const [title, setTitle] = useState('');
   const router = useRouter();
+  const { startNavigation } = useNavigation();
 
   const handleCreateChat = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -27,6 +30,10 @@ export function NewChatButton({
     
     try {
       const chat = await createChat(pdfSummaryId, title);
+      
+      // Start navigation indicator and set navigating state
+      startNavigation();
+      setIsNavigating(true);
       
       // Navigate to the new chat
       router.push(`/chat/${chat.id}`);
@@ -39,9 +46,8 @@ export function NewChatButton({
     } catch (error) {
       console.error('Error creating chat:', error);
       alert('Failed to create a new chat. Please try again.');
-    } finally {
       setIsCreating(false);
-      setTitle('');
+      setIsNavigating(false);
     }
   };
 
@@ -55,14 +61,21 @@ export function NewChatButton({
             placeholder="Enter a title for your chat"
             className="w-full"
             autoFocus
-          />
-          <Button type="submit" disabled={!title.trim()}>
-            Create
+          />          <Button type="submit" disabled={!title.trim() || isNavigating}>
+            {isNavigating ? (
+              <span className="flex items-center gap-1">
+                <Loader2 className="h-4 w-4 animate-spin" />
+                Loading...
+              </span>
+            ) : (
+              'Create'
+            )}
           </Button>
           <Button 
             type="button" 
             variant="outline" 
             onClick={() => setIsCreating(false)}
+            disabled={isNavigating}
           >
             Cancel
           </Button>

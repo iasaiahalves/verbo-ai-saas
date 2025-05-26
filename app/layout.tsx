@@ -1,5 +1,8 @@
-import Footer from "@/components/common/footer";
+'use client';
+
 import Header from "@/components/common/header";
+import { NavigationProgress, NavigationProvider } from "@/components/common/navigation-progress";
+import ClientLayout from "@/components/layout/client-layout";
 import { ClerkProvider } from "@clerk/nextjs";
 import type { Metadata } from "next";
 import { Source_Sans_3 as FontSans } from "next/font/google";
@@ -14,7 +17,7 @@ const fontSans = FontSans({
 });
 
 
-export const metadata: Metadata = {
+const metadata: Metadata = {
   title: "Verbo - AI-Powered PDF Summarization ",
   description: "Verbo is an app for summarizing PDF documents",
 };
@@ -29,12 +32,18 @@ export default function RootLayout({
         <html lang="en">
       <body
         className={`${fontSans.variable} font-sans antialiased`}> 
-        <div className="relative flex min-h-screen flex-col">
-           <Header />
-        <main className="flex-1">{children}</main>
-           <Footer />
+        <NavigationProvider>
+          <NavigationProgress />
+          <div className="relative flex min-h-screen flex-col">
+            <Header />
+            <main className="flex-1">
+              <ClientLayout>
+                {children}
+              </ClientLayout>
+            </main>
           </div>
           <Toaster/>
+        </NavigationProvider>
        </body>
     </html>
     </ClerkProvider>

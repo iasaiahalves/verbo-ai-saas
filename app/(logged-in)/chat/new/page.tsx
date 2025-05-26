@@ -1,5 +1,6 @@
 'use client';
 
+import { useNavigation } from '@/components/common/navigation-progress';
 import { createChat } from '@/lib/chat';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { useEffect, useState } from 'react';
@@ -7,12 +8,14 @@ import { useEffect, useState } from 'react';
 export default function NewChatPage() {
   const router = useRouter();
   const searchParams = useSearchParams();
+  const { startNavigation } = useNavigation();
   const pdfSummaryId = searchParams.get('pdfSummaryId');
   const showSummary = searchParams.get('showSummary') === 'true';
   const [isCreating, setIsCreating] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
-  useEffect(() => {    if (!pdfSummaryId) {
+  useEffect(() => {
+    if (!pdfSummaryId) {
       setError('No PDF summary ID provided');
       setIsCreating(false);
       return;
@@ -20,12 +23,21 @@ export default function NewChatPage() {
 
     async function createNewChat() {
       try {
-        // Create a new chat with a generic title based on timestamp
+        // First check if the user already has chats for this PDF
+        const existingChats = await fetch(`/api/chats?pdfSummaryId=${pdfSummaryId}`).then(res => res.json());
+        
+        if (existingChats && existingChats.length > 0) {
+          // Use the most recent chat instead of creating a new one
+          startNavigation();
+          router.replace(`/chat/${existingChats[0].id}${showSummary ? '?showSummary=true' : ''}`);
+          return;
+        }
+        
+        // Only create a new chat if none exists
         const title = `Chat about PDF - ${new Date().toLocaleString()}`;
-        // Since we've already checked pdfSummaryId is not null above, we can assert it as string
         const chat = await createChat(pdfSummaryId as string, title);
         
-        // Navigate to the new chat, passing showSummary if needed
+        startNavigation();
         router.replace(`/chat/${chat.id}${showSummary ? '?showSummary=true' : ''}`);
       } catch (error) {
         console.error('Failed to create chat:', error);
@@ -35,7 +47,7 @@ export default function NewChatPage() {
     }
 
     createNewChat();
-  }, [pdfSummaryId, router, showSummary]);
+  }, [pdfSummaryId, router, showSummary, startNavigation]);
 
   return (
     <div className="flex items-center justify-center min-h-screen">

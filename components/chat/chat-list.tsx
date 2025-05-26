@@ -1,5 +1,6 @@
 'use client';
 
+import { useNavigation } from '@/components/common/navigation-progress';
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
 import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog';
@@ -30,6 +31,7 @@ export function ChatList({ chats }: { chats: ChatType[] }) {
 
 function ChatCard({ chat }: { chat: ChatType }) {
   const router = useRouter();
+  const { startNavigation } = useNavigation();
   const [isDeleting, setIsDeleting] = useState(false);
   const [showDeleteDialog, setShowDeleteDialog] = useState(false);
 
@@ -47,12 +49,15 @@ function ChatCard({ chat }: { chat: ChatType }) {
       setShowDeleteDialog(false);
     }
   };
+  
+  const handleChatClick = () => {
+    startNavigation();
+  };
 
   return (
-    <>
-      <Card className="p-4 hover:shadow-md transition-shadow">
+    <>      <Card className="p-4 hover:shadow-md transition-shadow">
         <div className="flex justify-between items-start">
-          <Link href={`/chat/${chat.id}`} className="flex-1 hover:underline">
+          <Link href={`/chat/${chat.id}`} className="flex-1 hover:underline" onClick={handleChatClick}>
             <div className="flex items-center gap-2">
               <MessageSquare className="h-4 w-4 text-primary" />
               <h3 className="font-medium">{chat.title}</h3>

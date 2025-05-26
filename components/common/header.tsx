@@ -1,38 +1,35 @@
+'use client';
+
 import { SignedIn, SignedOut, UserButton } from '@clerk/nextjs';
 import { FileText } from 'lucide-react';
 import { ChatNavLink } from './chat-nav-link';
-import NavLink from './nav-link';
+import NavigationLink from './navigation-link';
 
 export default function Header() {
   return (
-    <nav className="container flex items-center justify-between py-4 lg:px-8 px-2 mx-auto">
-
-      <div className="flex lg:flex-1">
-
-        <NavLink href="/" className="flex items-center gap-1 lg:gap-2 shrink-0">
+    <nav className="container flex items-center justify-between py-4 lg:px-8 px-2 mx-auto">      <div className="flex lg:flex-1">
+        <NavigationLink href="/" className="flex items-center gap-1 lg:gap-2 shrink-0">
         <FileText className="w-5 h-5 lg:w-8 lg:h-8 text-gray-900 hover:rotate-12 transform transition duration-200 ease-in-out"/>  
           <span className="font-extrabold lg:text-xl text-gray-900">
             Verbo
           </span>
-        </NavLink>
+        </NavigationLink>
       </div>
       <div className="flex lg:justify-center gap-4 lg:gap-12 lg:items-center">
-        <NavLink href="/#pricing">Pricing</NavLink>
+        <NavigationLink href="/#pricing">Pricing</NavigationLink>
         <SignedIn>
-          <NavLink href="/dashboard">
+          <NavigationLink href="/dashboard">
             Your Summaries
-          </NavLink>
+          </NavigationLink>
           <ChatNavLink />
         </SignedIn>
         
-      </div>
-
-      <div className="flex lg:justify-end lg:flex-1">
+      </div>      <div className="flex lg:justify-end lg:flex-1">
         <SignedIn>
           <div className="flex gap-2 items-center">
-            <NavLink href="/upload" className="">
+            <NavigationLink href="/upload" className="">
               Upload a PDF
-            </NavLink>
+            </NavigationLink>
             <div>
               Pro
             </div>
@@ -44,7 +41,7 @@ export default function Header() {
        
        
         <SignedOut>
-          <NavLink href="/sign-in">Sign In</NavLink>
+          <NavigationLink href="/sign-in">Sign In</NavigationLink>
         </SignedOut>
       
       </div>

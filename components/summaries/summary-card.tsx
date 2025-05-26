@@ -1,3 +1,6 @@
+'use client';
+
+import { useNavigation } from "@/components/common/navigation-progress";
 import { Card } from "@/components/ui/card";
 import { cn, formatFileName } from "@/lib/utils";
 import { formatDistanceToNow } from "date-fns";
@@ -30,6 +33,12 @@ const StatusBadge = ({ status }: { status: string }) => {
 }
 
 export function SummaryCard({summary}:{summary: any}) {
+  const { startNavigation } = useNavigation();
+
+  const handleClick = () => {
+    startNavigation();
+  };
+
   return (
     <div>
       <Card className="relative h-full">
@@ -37,7 +46,8 @@ export function SummaryCard({summary}:{summary: any}) {
           <DeleteButton summaryId={summary.id} />
         </div>
         <Link href={`summaries/${summary.id}`}
-          className="block p-4 sm:p-6">
+          className="block p-4 sm:p-6"
+          onClick={handleClick}>
           <div className="flex flex-col gap-3 sm:gap-4">
 
           <SummaryHeader

@@ -2,8 +2,8 @@
 
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { cn } from "@/lib/utils";
 import { createChat } from "@/lib/chat";
+import { cn } from "@/lib/utils";
 import { MessageSquare } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { useState } from "react";
@@ -26,6 +26,23 @@ export function ChatOption({ pdfSummaryId, className }: ChatOptionProps) {
     setIsCreating(true);
     
     try {
+      // Check if there are existing chats for this PDF first
+      const response = await fetch(`/api/chats?pdfSummaryId=${pdfSummaryId}`);
+      const existingChats = await response.json();
+      
+      if (existingChats && existingChats.length > 0) {
+        // If a chat already exists with this title, use it
+        const matchingChat = existingChats.find((chat: any) => 
+          chat.title.toLowerCase() === chatTitle.toLowerCase()
+        );
+        
+        if (matchingChat) {
+          router.push(`/chat/${matchingChat.id}`);
+          return;
+        }
+      }
+      
+      // Otherwise create a new chat
       const chat = await createChat(pdfSummaryId, chatTitle);
       router.push(`/chat/${chat.id}`);
     } catch (error) {
