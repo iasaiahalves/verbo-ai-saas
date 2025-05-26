@@ -1,0 +1,35 @@
+/* Styles for the pricing section animation */
+.force-render {
+  transform: translateZ(0);
+  backface-visibility: hidden;
+}
+
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+    transform: translateY(10px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.pricing-animation {
+  animation: fadeIn 0.5s ease-out forwards;
+}
+
+.pricing-card {
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.pricing-card-appear {
+  opacity: 0;
+  transform: translateY(20px);
+}
+
+.pricing-card-appear-active {
+  opacity: 1;
+  transform: translateY(0);
+  transition-delay: calc(var(--index) * 100ms);
+}

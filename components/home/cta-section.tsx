@@ -1,7 +1,19 @@
-import { ArrowRight } from "lucide-react"
-import Link from "next/link"
-import { Button } from "../ui/button"
+'use client';
+
+import { ArrowRight, Loader2 } from "lucide-react";
+import { useRouter } from "next/navigation";
+import { useState } from "react";
+import { Button } from "../ui/button";
+
 export default function CTASection() {
+  const router = useRouter();
+  const [isLoading, setIsLoading] = useState(false);
+
+  const handleNavigate = () => {
+    setIsLoading(true);
+    router.push('/pricing');
+  };
+
   return (
     <section className="bg-gray-50 py-12">
       <div className="py-12 lg:py-24 max-w-5xl mx-auto px-4 sm:px-6 lg:px-8">
@@ -12,17 +24,23 @@ export default function CTASection() {
               Transform lengthy documents into clear, actionable insights with our AI-powered summarizer.
             </p>
           </div>
-          <div className="flex flex-col gap-2 min-[400px]:flex-row justify-center">
-            <div className="">
+          <div className="flex flex-col gap-2 min-[400px]:flex-row justify-center">            <div className="">
               <Button
                 size="lg"
                 variant={'link'}
-                className="w-full min-[400px]:w-auto bg-linear-to-r from-slate-900 to-rose-500 hover:from-rose-500 hover:to-slate-900 hover:text-white text-white transition-all duration-300 ">                <Link href="/pricing" className="flex items-center justify-center">Get Started{' '}
-                  
-                <ArrowRight className="ml-2 h-4 w-4 animate-pulse" />
-                </Link>
+                className="w-full min-[400px]:w-auto bg-linear-to-r from-slate-900 to-rose-500 hover:from-rose-500 hover:to-slate-900 hover:text-white text-white transition-all duration-300"
+                onClick={handleNavigate}
+                disabled={isLoading}
+              >
+                <div className="flex items-center justify-center">
+                  Get Started{' '}
+                  {isLoading ? (
+                    <Loader2 className="ml-2 h-4 w-4 animate-spin" />
+                  ) : (
+                    <ArrowRight className="ml-2 h-4 w-4 animate-pulse" />
+                  )}
+                </div>
               </Button>
-            
             </div>
           </div>
         </div>

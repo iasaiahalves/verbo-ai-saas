@@ -1,9 +1,12 @@
+'use client';
+
 import { MotionDiv, MotionH1, MotionH2, MotionSection, MotionSpan } from "@/components/common/motion-wrapper";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { containerVariants, itemVariants } from "@/utils/constants";
-import { ArrowRight, Sparkles } from "lucide-react";
-import Link from "next/link";
+import { ArrowRight, Loader2, Sparkles } from "lucide-react";
+import { useRouter } from "next/navigation";
+import { useState } from "react";
 
 const buttonVariants = {
   scale: 1.05,
@@ -16,6 +19,13 @@ const buttonVariants = {
 }
 
 export default function HeroSection() {
+  const router = useRouter();
+  const [isLoading, setIsLoading] = useState(false);
+
+  const handleNavigate = () => {
+    setIsLoading(true);
+    router.push('/pricing');
+  };
   return (
     <MotionSection
       variants={containerVariants}
@@ -50,11 +60,20 @@ export default function HeroSection() {
       <MotionH2
         variants={itemVariants}
         className="text-lg sm:text-xl lg:text-2xl text-center px-4 lg:px-0 lg:max-w-4xl text-gray-600">Get a beautiful summary reel of the document in seconds</MotionH2>      <MotionDiv variants={itemVariants} whileHover={buttonVariants}>
-        <Button variant={'link'} className="text-white mt-6 text-base sm:text-lg lg:text-xl rounded-full px-8 sm:px-10 lg:px-12 py-6 sm:py-7 lg:py-8 lg:mt-16 bg-linear-to-r from-slate-900 to-rose-500 hover:from-rose-500 hover:to-slate-900 hover:no-underline font-bold shadow-lg transition-all duration-300">
-          <Link href="/pricing" className="flex gap-2 items-center">
+        <Button 
+          variant={'link'} 
+          className="text-white mt-6 text-base sm:text-lg lg:text-xl rounded-full px-8 sm:px-10 lg:px-12 py-6 sm:py-7 lg:py-8 lg:mt-16 bg-linear-to-r from-slate-900 to-rose-500 hover:from-rose-500 hover:to-slate-900 hover:no-underline font-bold shadow-lg transition-all duration-300"
+          onClick={handleNavigate}
+          disabled={isLoading}
+        >
+          <div className="flex gap-2 items-center">
             <span>Try Verbo</span>
-            <ArrowRight className="animate-pulse"/>
-          </Link>
+            {isLoading ? (
+              <Loader2 className="animate-spin" />
+            ) : (
+              <ArrowRight className="animate-pulse" />
+            )}
+          </div>
         </Button>
       </MotionDiv>
    </MotionSection>

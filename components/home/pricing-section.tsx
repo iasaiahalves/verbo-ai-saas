@@ -1,7 +1,10 @@
+'use client';
+
 import { cn } from "@/lib/utils";
 import { containerVariants, itemVariants } from "@/utils/constants";
 import { ArrowRight, CheckIcon } from "lucide-react";
 import Link from "next/link";
+import { useEffect } from "react";
 import { MotionDiv, MotionSection } from "../common/motion-wrapper";
 
 type PriceType = {
@@ -52,13 +55,16 @@ const plans = [
   },
 ];
 
-const PricingCard = ({ name, price, description, items, paymentLink, id }: PriceType) => {
+const PricingCard = ({ name, price, description, items, paymentLink, id, index = 0 }: PriceType & { index?: number }) => {
   return <MotionDiv
     
     variants={listVariants}
+    initial="hidden"
+    animate="visible"
     whileHover={{ scale: 1.02}}
-    
-    className="relative w-full max-w-lg hover:scale-105 hover:transition-all duration-300">
+    transition={{ delay: index * 0.1 }}
+    style={{ '--index': index } as React.CSSProperties}
+    className="pricing-card relative w-full max-w-lg hover:scale-105 hover:transition-all duration-300">
     <div className={cn(
       "relative flex flex-col h-full gap-4 lg:gap-8 z-10 p-8 border-[1px] border-gray-500/20 rounded-2xl",
       
@@ -106,23 +112,39 @@ const PricingCard = ({ name, price, description, items, paymentLink, id }: Price
   </MotionDiv>;
 };
 
-export default function PricingSection() {
+export default function PricingSection() {  // This ensures the animation runs on initial load even when directly navigating to the page
+  useEffect(() => {
+    // Use requestAnimationFrame to ensure DOM has updated before applying animations
+    const timer = setTimeout(() => {
+      const container = document.getElementById('pricing-container');
+      if (container) {
+        container.classList.add('force-render', 'pricing-animation');
+        
+        // Apply appear animations to the pricing cards with staggered timing
+        const cards = document.querySelectorAll('.pricing-card');
+        cards.forEach((card, index) => {
+          setTimeout(() => {
+            card.classList.add('pricing-card-appear-active');
+          }, index * 100);
+        });
+      }
+    }, 50); // Short delay to ensure DOM is ready
+
+    return () => clearTimeout(timer);
+  }, []);
   return (    <MotionSection
       variants={containerVariants}
       initial="hidden"
-      whileInView="visible"
-      viewport={{ once: true, margin: '-100px' }}
+      animate="visible" // Changed from whileInView to always animate
       className="relative overflow-hidden">
-      <div className="py-12 lg:py-24 max-w-5xl mx-auto px-4 sm:px-6 lg:px-8 lg:pt-12">
+      <div id="pricing-container" className="py-12 lg:py-24 max-w-5xl mx-auto px-4 sm:px-6 lg:px-8 lg:pt-12">
         <MotionDiv
           variants={itemVariants}
           className="flex items-center justify-center w-full pb-12 ">
           <h2 className="uppercase font-bold text-xl mb-8 text-rose-500">Pricing</h2>
-        </MotionDiv>
-        <div className="relative flex justify-center flex-col lg:flex-row items-center lg:items-stretch gap-8">
-          {plans.map((plan) => (
-            <PricingCard key={plan.id} {...plan} />
-          
+        </MotionDiv>        <div className="relative flex justify-center flex-col lg:flex-row items-center lg:items-stretch gap-8">
+          {plans.map((plan, index) => (
+            <PricingCard key={plan.id} {...plan} index={index} />
           ))}
         </div>
       </div>
