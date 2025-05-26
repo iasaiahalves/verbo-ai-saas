@@ -7,7 +7,7 @@ import { getSummaryById } from "./summaries";
 
 // Initialize OpenAI client configured for Llama API
 const openai = new OpenAI({
-  apiKey: process.env.LLAMA_API_KEY || '',
+  apiKey: process.env.DEEPSEEKR1_API_KEY || '',
   baseURL:"https://openrouter.ai/api/v1", // Llama API endpoint
 });
 
@@ -250,7 +250,7 @@ Your tone should be natural, confident, and human—think: helpful tutor or engi
   // Get response from Llama API
   try {
     const response = await openai.chat.completions.create({
-      model: "meta-llama/llama-3.1-8b-instruct:free",
+      model: "deepseek/deepseek-r1:free",
       messages: llamaMessages,
       temperature: 0.7,
       max_tokens: 1000,
