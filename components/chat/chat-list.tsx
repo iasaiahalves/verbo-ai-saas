@@ -63,7 +63,8 @@ function ChatCard({ chat }: { chat: ChatType }) {
   };
 
   // Get a better title for display
-  const displayTitle = (chat as any).summary_title || 
+  const displayTitle = chat.title || 
+                      (chat as any).summary_title || 
                       formatFileName((chat as any).file_name) || 
                       (chat.pdf_summary_id ? 'Chat about Document' : 'New Chat');
 
@@ -113,7 +114,11 @@ function ChatCard({ chat }: { chat: ChatType }) {
           <div className="flex items-center gap-2 mb-4 px-3 py-2 bg-gray-50 dark:bg-gray-700/50 rounded-lg min-h-[2.5rem]">
             <FileText className="h-4 w-4 text-rose-500 flex-shrink-0" />
             <span className="text-sm text-gray-600 dark:text-gray-300 truncate">
-              {(chat as any).file_name ? formatFileName((chat as any).file_name) : 'Document Chat'}
+              {(chat as any).file_name 
+                ? (chat.title !== formatFileName((chat as any).file_name) 
+                    ? formatFileName((chat as any).file_name) 
+                    : 'Document Chat')
+                : 'Document Chat'}
             </span>
           </div>
 

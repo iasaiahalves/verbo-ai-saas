@@ -2,6 +2,8 @@
 
 import { useNavigation } from '@/components/common/navigation-progress';
 import { Card } from '@/components/ui/card';
+import { Input } from '@/components/ui/input'; // Add this import
+import { createChat } from '@/lib/chat'; // Add this import
 import { ArrowRight, Clock, MessageSquare, Sparkles } from 'lucide-react';
 import { useRouter } from 'next/navigation';
 import { useCallback, useEffect, useRef, useState } from 'react';
@@ -49,6 +51,8 @@ export function PDFChatSection({
   const router = useRouter();
   const { startNavigation } = useNavigation();
   const [isNavigating, setIsNavigating] = useState(false);
+  const [showTitleInput, setShowTitleInput] = useState(false);
+  const [chatTitle, setChatTitle] = useState('');
   const navigatingRef = useRef(false);
   const lastClickTimeRef = useRef(0);
   
@@ -59,7 +63,28 @@ export function PDFChatSection({
     };
   }, []);
 
-  // Use useCallback to ensure the function doesn't get recreated on every render
+  // Handle chat creation with custom title
+  const handleCreateChat = async (e: React.FormEvent) => {
+    e.preventDefault();
+    
+    if (!chatTitle.trim() || isNavigating || navigatingRef.current) return;
+    
+    setIsNavigating(true);
+    navigatingRef.current = true;
+    startNavigation();
+    
+    try {
+      // Create chat with custom title
+      const chat = await createChat(pdfSummaryId, chatTitle);
+      router.replace(`/chat/${chat.id}?showSummary=true`);
+    } catch (error) {
+      console.error('Failed to create chat:', error);
+      setIsNavigating(false);
+      navigatingRef.current = false;
+    }
+  };
+
+  // Modified to show input form when no existing chats
   const handleAskQuestions = useCallback(() => {
     // Debounce check - prevent rapid clicks
     const now = Date.now();
@@ -71,23 +96,21 @@ export function PDFChatSection({
     // Prevent duplicate navigation
     if (isNavigating || navigatingRef.current) return;
     
-    setIsNavigating(true);
-    navigatingRef.current = true;
-    startNavigation();
-    
-    // Wrap in setTimeout to further prevent duplicate executions
-    setTimeout(async () => {
-      // Check if there are existing chats for this PDF
-      if (initialChats && initialChats.length > 0) {
-        // Use the most recent chat instead of creating a new one
-        const mostRecentChat = initialChats[0]; // Assuming they're sorted by updated_at DESC
+    // If there are existing chats, navigate to the most recent one
+    if (initialChats && initialChats.length > 0) {
+      setIsNavigating(true);
+      navigatingRef.current = true;
+      startNavigation();
+      
+      setTimeout(() => {
+        const mostRecentChat = initialChats[0]; 
         router.replace(`/chat/${mostRecentChat.id}?showSummary=true`);
-      } else {
-        // Only create a new chat if none exists
-        router.replace(`/chat/new?pdfSummaryId=${pdfSummaryId}&showSummary=true`);
-      }
-    }, 50);
-  }, [initialChats, isNavigating, pdfSummaryId, router, startNavigation]);
+      }, 50);
+    } else {
+      // If no existing chats, show title input instead of navigating
+      setShowTitleInput(true);
+    }
+  }, [initialChats, isNavigating, router, startNavigation]);
 
   const hasExistingChats = initialChats && initialChats.length > 0;
 
@@ -121,63 +144,112 @@ export function PDFChatSection({
 
           {/* Content */}
           <div className="space-y-4">
-            <p className="text-gray-600 dark:text-gray-300 leading-relaxed">
-              {hasExistingChats 
-                ? "Continue your conversation about this document. Ask follow-up questions and dive deeper into specific topics."
-                : "Ready to explore this document? Ask questions, request explanations, or discuss key concepts with Verbo's AI assistance."
-              }
-            </p>
+            {!showTitleInput ? (
+              <>
+                <p className="text-gray-600 dark:text-gray-300 leading-relaxed">
+                  {hasExistingChats 
+                    ? "Continue your conversation about this document. Ask follow-up questions and dive deeper into specific topics."
+                    : "Ready to explore this document? Ask questions, request explanations, or discuss key concepts with Verbo's AI assistance."
+                  }
+                </p>
 
-            {/* Previous chat indicator */}
-            {hasExistingChats && (
-              <div className="flex items-center gap-2 text-xs text-gray-500 dark:text-gray-400 bg-gray-100/80 dark:bg-gray-800/50 px-3 py-2 rounded-lg">
-                <Clock className="h-3 w-3" />
-                <span>Last conversation: {formatDate(initialChats[0].updated_at)}</span>
-              </div>
+                {/* Previous chat indicator */}
+                {hasExistingChats && (
+                  <div className="flex items-center gap-2 text-xs text-gray-500 dark:text-gray-400 bg-gray-100/80 dark:bg-gray-800/50 px-3 py-2 rounded-lg">
+                    <Clock className="h-3 w-3" />
+                    <span>Last conversation: {formatDate(initialChats[0].updated_at)}</span>
+                  </div>
+                )}
+
+                {/* Action button */}
+                <div className="pt-2">
+                  <Button 
+                    onClick={handleAskQuestions}
+                    disabled={isNavigating}
+                    size="lg"
+                    className={`group relative w-full sm:w-auto transition-all duration-200 ${
+                      hasExistingChats 
+                        ? "bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700 shadow-lg hover:shadow-xl" 
+                        : "bg-gradient-to-r from-rose-500 to-pink-600 hover:from-rose-600 hover:to-pink-700 shadow-lg hover:shadow-xl"
+                    } text-white border-0`}
+                  >
+                    {isNavigating ? (
+                      <>
+                        <div className="h-4 w-4 animate-spin rounded-full border-2 border-current border-t-transparent mr-2" />
+                        <span>Connecting...</span>
+                      </>
+                    ) : (
+                      <>
+                        <MessageSquare className="h-4 w-4 mr-2 transition-transform group-hover:scale-110" />
+                        <span className="font-medium">
+                          {hasExistingChats ? "Continue Conversation" : "Start Asking Questions"}
+                        </span>
+                        <ArrowRight className="h-4 w-4 ml-2 transition-transform group-hover:translate-x-1" />
+                      </>
+                    )}
+                  </Button>
+                </div>
+              </>
+            ) : (
+              <form onSubmit={handleCreateChat} className="pt-2 space-y-4">
+                <div className="space-y-2">
+                  <Input
+                    id="chat-title"
+                    value={chatTitle}
+                    onChange={(e) => setChatTitle(e.target.value)}
+                    placeholder="Enter a title for your chat"
+                    className="w-full"
+                    autoFocus
+                    disabled={isNavigating}
+                  />
+                  <p className="text-xs text-gray-500 dark:text-gray-400">
+                    A descriptive title helps you find this conversation later
+                  </p>
+                </div>
+                
+                <div className="flex gap-2">
+                  <Button 
+                    type="submit"
+                    disabled={!chatTitle.trim() || isNavigating}
+                    className="bg-gradient-to-r from-rose-500 to-pink-600 hover:from-rose-600 hover:to-pink-700 shadow-lg hover:shadow-xl text-white border-0"
+                  >
+                    {isNavigating ? (
+                      <>
+                        <div className="h-4 w-4 animate-spin rounded-full border-2 border-current border-t-transparent mr-2" />
+                        <span>Creating Chat...</span>
+                      </>
+                    ) : (
+                      "Create Chat"
+                    )}
+                  </Button>
+                  
+                  <Button
+                    type="button"
+                    variant="ghost"
+                    onClick={() => setShowTitleInput(false)}
+                    disabled={isNavigating}
+                  >
+                    Cancel
+                  </Button>
+                </div>
+              </form>
             )}
 
-            {/* Action button */}
-            <div className="pt-2">
-              <Button 
-                onClick={handleAskQuestions}
-                disabled={isNavigating}
-                size="lg"
-                className={`group relative w-full sm:w-auto transition-all duration-200 ${
-                  hasExistingChats 
-                    ? "bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700 shadow-lg hover:shadow-xl" 
-                    : "bg-gradient-to-r from-rose-500 to-pink-600 hover:from-rose-600 hover:to-pink-700 shadow-lg hover:shadow-xl"
-                } text-white border-0`}
-              >
-                {isNavigating ? (
-                  <>
-                    <div className="h-4 w-4 animate-spin rounded-full border-2 border-current border-t-transparent mr-2" />
-                    <span>Connecting...</span>
-                  </>
-                ) : (
-                  <>
-                    <MessageSquare className="h-4 w-4 mr-2 transition-transform group-hover:scale-110" />
-                    <span className="font-medium">
-                      {hasExistingChats ? "Continue Conversation" : "Start Asking Questions"}
-                    </span>
-                    <ArrowRight className="h-4 w-4 ml-2 transition-transform group-hover:translate-x-1" />
-                  </>
-                )}
-              </Button>
-            </div>
-
             {/* Feature highlights */}
-            <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 pt-4 border-t border-gray-200/50 dark:border-gray-700/50">
-              {[
-                { icon: "🔍", text: "Deep Analysis" },
-                { icon: "💡", text: "Smart Insights" },
-                { icon: "📝", text: "Detailed Explanations" }
-              ].map((feature, index) => (
-                <div key={index} className="flex items-center gap-2 text-xs text-gray-500 dark:text-gray-400">
-                  <span className="text-sm">{feature.icon}</span>
-                  <span>{feature.text}</span>
-                </div>
-              ))}
-            </div>
+            {!showTitleInput && (
+              <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 pt-4 border-t border-gray-200/50 dark:border-gray-700/50">
+                {[
+                  { icon: "🔍", text: "Deep Analysis" },
+                  { icon: "💡", text: "Smart Insights" },
+                  { icon: "📝", text: "Detailed Explanations" }
+                ].map((feature, index) => (
+                  <div key={index} className="flex items-center gap-2 text-xs text-gray-500 dark:text-gray-400">
+                    <span className="text-sm">{feature.icon}</span>
+                    <span>{feature.text}</span>
+                  </div>
+                ))}
+              </div>
+            )}
           </div>
         </div>
       </Card>

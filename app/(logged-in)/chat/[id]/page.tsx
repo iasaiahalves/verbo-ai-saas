@@ -5,6 +5,7 @@ import { ChatInterface } from '@/components/chat/chat-interface';
 import BgGradient from '@/components/common/bg-gradient';
 import { SummaryViewer } from '@/components/summaries/summary-viewer';
 import { Button } from '@/components/ui/button';
+import { formatFileName } from '@/lib/utils';
 import { formatDistanceToNow } from 'date-fns';
 import { ArrowLeft, ArrowLeftRight, ExternalLink, FileText, MinusCircle } from 'lucide-react';
 import Link from 'next/link';
@@ -140,10 +141,13 @@ export default function ChatPage() {
                 </Button>
               </Link>
               <div>
-                <h1 className="font-semibold text-xl">{chat?.title}</h1>
+                <h1 className="font-semibold text-xl">
+                  {chat?.summary_title || 
+                   (chat?.file_name ? formatFileName(chat.file_name) : chat?.title)}
+                </h1>
                 <div className="flex items-center gap-1 text-sm text-muted-foreground">
                   <FileText className="h-3 w-3" />
-                  <span>{chat?.summary_title || chat?.file_name || 'PDF'}</span>
+                  <span>{chat?.title || chat?.summary_title || chat?.file_name || 'PDF'}</span>
                   <span className="text-xs ml-2">
                     {chat?.updated_at && formatDistanceToNow(new Date(chat.updated_at), { addSuffix: true })}
                   </span>
