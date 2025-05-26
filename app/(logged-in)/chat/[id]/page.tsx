@@ -17,14 +17,30 @@ export default function ChatPage() {
   const router = useRouter();
   const showSummaryParam = searchParams.get('showSummary') === 'true';
   const chatId = params.id as string;
-  
+  // Define a more specific type for chat data
+  interface ChatData {
+    id: string;
+    title: string;
+    summary_title?: string;
+    file_name?: string;
+    updated_at: string;
+    pdf_summary_id?: string;
+    messages: Array<{
+      id: string;
+      role: string;
+      content: string;
+      created_at: string;
+    }>;
+  }
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const [chat, setChat] = useState<any>(null);
+  const [chat, setChat] = useState<ChatData | null>(null);
   const [summaryData, setSummaryData] = useState<any>(null);
-
+  const [showSummary, setShowSummary] = useState(showSummaryParam);
+  const [fetchedSummaries, setFetchedSummaries] = useState<Record<string, any>>({});  // Create a more efficient useEffect for initial data loading that doesn't re-run on summary toggle
+  const [isSummaryLoading, setIsSummaryLoading] = useState(false); // State for summary loading indicator
   useEffect(() => {
-    async function fetchData() {
+    async function fetchInitialData() {
       try {
         setLoading(true);
         
@@ -35,12 +51,30 @@ export default function ChatPage() {
           return;
         }
         
-        setChat(chatData);
+        // Type assertion to match our interface
+        const typedChatData = chatData as ChatData;
+        setChat(typedChatData);
         
-        // If we have a pdf_summary_id and showSummary is true, fetch the summary
-        if (chatData.pdf_summary_id && showSummaryParam) {
-          const summaryData = await fetchSummaryData(chatData.pdf_summary_id);
-          setSummaryData(summaryData);
+        // Check if we should show summary initially based on URL param
+        const shouldShowSummary = showSummaryParam;
+        setShowSummary(shouldShowSummary);
+        
+        // If we have a pdf_summary_id and should show summary, fetch it
+        if (typedChatData.pdf_summary_id && shouldShowSummary) {
+          const summaryId = typedChatData.pdf_summary_id;
+          
+          // Only fetch if we don't already have it
+          if (!fetchedSummaries[summaryId]) {
+            const summaryData = await fetchSummaryData(summaryId);
+            setFetchedSummaries(prev => ({
+              ...prev,
+              [summaryId]: summaryData
+            }));
+            setSummaryData(summaryData);
+          } else {
+            // Use cached summary data
+            setSummaryData(fetchedSummaries[summaryId]);
+          }
         }
       } catch (err) {
         setError('Failed to load chat data');
@@ -50,10 +84,29 @@ export default function ChatPage() {
       }
     }
     
-    fetchData();
-  }, [chatId, showSummaryParam]);
+    fetchInitialData();
+    // Only re-run this effect when the chat ID changes, not on summary toggle
+  }, [chatId]);
   
-  return (
+  // Add a separate effect to handle URL parameter changes without full reloads
+  useEffect(() => {
+    // Only update the UI state based on URL, without fetching
+    if (chat && chat.pdf_summary_id) {
+      const shouldShowSummary = showSummaryParam;
+      setShowSummary(shouldShowSummary);
+      
+      if (shouldShowSummary) {
+        // If we should show summary and have it cached, use it
+        if (fetchedSummaries[chat.pdf_summary_id]) {
+          setSummaryData(fetchedSummaries[chat.pdf_summary_id]);
+        }
+      } else {
+        // If hiding summary, keep the data cached but don't display
+        setSummaryData(null);
+      }
+    }
+  }, [showSummaryParam]);
+    return (
     <div className="relative isolate min-h-screen bg-linear-to-b from-rose-50/40 to-white">
       <BgGradient className="from-rose-400 via-rose-300 to-orange-200"/> 
       
@@ -87,61 +140,114 @@ export default function ChatPage() {
                 </Button>
               </Link>
               <div>
-                <h1 className="font-semibold text-xl">{chat.title}</h1>
+                <h1 className="font-semibold text-xl">{chat?.title}</h1>
                 <div className="flex items-center gap-1 text-sm text-muted-foreground">
                   <FileText className="h-3 w-3" />
-                  <span>{chat.summary_title || chat.file_name || 'PDF'}</span>
+                  <span>{chat?.summary_title || chat?.file_name || 'PDF'}</span>
                   <span className="text-xs ml-2">
-                    {formatDistanceToNow(new Date(chat.updated_at), { addSuffix: true })}
+                    {chat?.updated_at && formatDistanceToNow(new Date(chat.updated_at), { addSuffix: true })}
                   </span>
                 </div>
               </div>
             </div>
-            
-            <div className="flex items-center gap-2">
-              {chat.pdf_summary_id && (
+              <div className="flex items-center gap-2">
+              {chat?.pdf_summary_id && (
                 <Link href={`/summaries/${chat.pdf_summary_id}`}>
                   <Button variant="outline" size="sm" className="flex items-center gap-1">
                     View Full Summary
                     <ExternalLink className="h-3 w-3 ml-1" />
                   </Button>
                 </Link>
-              )}
-              
-              {summaryData && (
-                <Link href={`/chat/${chat.id}`}>
-                  <Button variant="ghost" size="sm" className="flex items-center gap-1">
-                    <MinusCircle className="h-3 w-3 mr-1" />
-                    Hide Summary
-                  </Button>
-                </Link>
-              )}
-              
-              {!summaryData && chat.pdf_summary_id && (
-                <Link href={`/chat/${chat.id}?showSummary=true`}>
-                  <Button variant="ghost" size="sm" className="flex items-center gap-1">
-                    <ArrowLeftRight className="h-3 w-3 mr-1" />
-                    Show Summary
-                  </Button>
-                </Link>
+              )}                {chat?.pdf_summary_id && (
+                <Button 
+                  variant="ghost" 
+                  size="sm" 
+                  className="flex items-center gap-1"
+                  disabled={isSummaryLoading}
+                  onClick={async () => {
+                    if (!chat) return;
+                    
+                    if (showSummary) {
+                      // Hide summary - just update local state
+                      setShowSummary(false);
+                      // Update URL without the parameter
+                      router.push(`/chat/${chat.id}`, { scroll: false });
+                    } else {
+                      // Check if we've already fetched this summary before
+                      const summaryId = chat.pdf_summary_id!;
+                      
+                      if (fetchedSummaries[summaryId]) {
+                        // If we already have the data, just show it
+                        setSummaryData(fetchedSummaries[summaryId]);
+                        setShowSummary(true);
+                        // Update URL with the parameter
+                        router.push(`/chat/${chat.id}?showSummary=true`, { scroll: false });
+                      } else {
+                        // If not fetched yet, show loading indicator only for this operation
+                        setIsSummaryLoading(true);
+                        
+                        try {
+                          // Fetch summary data
+                          const summaryData = await fetchSummaryData(summaryId);
+                          
+                          // Cache it
+                          setFetchedSummaries(prev => ({
+                            ...prev,
+                            [summaryId]: summaryData
+                          }));
+                          
+                          // Show it
+                          setSummaryData(summaryData);
+                          setShowSummary(true);
+                          
+                          // Update URL
+                          router.push(`/chat/${chat.id}?showSummary=true`, { scroll: false });
+                        } catch (err) {
+                          console.error('Failed to fetch summary:', err);
+                        } finally {
+                          setIsSummaryLoading(false);
+                        }
+                      }
+                    }
+                  }}
+                >
+                  {isSummaryLoading ? (
+                    <>
+                      <div className="inline-block animate-spin rounded-full h-3 w-3 border-t-2 border-b-2 border-rose-500 mr-1"></div>
+                      Loading Summary...
+                    </>
+                  ) : showSummary ? (
+                    <>
+                      <MinusCircle className="h-3 w-3 mr-1" />
+                      Hide Summary
+                    </>
+                  ) : (
+                    <>
+                      <ArrowLeftRight className="h-3 w-3 mr-1" />
+                      Show Summary
+                    </>
+                  )}
+                </Button>
               )}
             </div>
-          </div>
-          <div className="flex-1 overflow-hidden flex flex-col lg:flex-row">
+          </div>          <div className="flex-1 overflow-hidden flex flex-col lg:flex-row">
             {/* Chat Interface */}
-            <div className={`flex-1 ${summaryData ? 'lg:w-1/2' : 'w-full'} overflow-hidden`}>
-              <ChatInterface 
-                chatId={chat.id}
-                initialMessages={chat.messages.map((msg: any) => ({
-                  id: msg.id,
-                  role: msg.role as 'user' | 'assistant',
-                  content: msg.content,
-                  created_at: new Date(msg.created_at)
-                }))}
-              />
-            </div>
+            <div className={`flex-1 ${showSummary && summaryData ? 'lg:w-1/2' : 'w-full'} overflow-hidden`}>
+              {chat && (
+                <ChatInterface 
+                  chatId={chat.id}
+                  initialMessages={chat.messages.map((msg: any) => ({
+                    id: msg.id,
+                    role: msg.role as 'user' | 'assistant',
+                    content: msg.content,
+                    created_at: new Date(msg.created_at)
+                  }))}
+                />
+              )}
+            </div>            
+            
             {/* Mobile Toggle Button for Summary */}
-            {summaryData && (
+            {showSummary && summaryData && (
               <div className="lg:hidden text-center py-2 border-t">
                 <Button 
                   variant="outline" 
@@ -159,8 +265,9 @@ export default function ChatPage() {
                 </Button>
               </div>
             )}
+            
             {/* Mobile Summary Viewer (full screen when active) */}
-            {summaryData && (
+            {showSummary && summaryData && (
               <div id="mobile-summary" className="lg:hidden hidden fixed inset-0 z-50 bg-white/95 backdrop-blur-sm p-4 overflow-auto">
                 <div className="sticky top-0 z-10 bg-white pb-4 flex justify-between items-center border-b border-gray-200 mb-4">
                   <h3 className="text-lg font-semibold">PDF Summary</h3>
@@ -179,18 +286,18 @@ export default function ChatPage() {
                 </div>
                 <SummaryViewer 
                   summary={summaryData.summary_text} 
-                  pdfSummaryId={chat.pdf_summary_id}
+                  pdfSummaryId={chat?.pdf_summary_id}
                   className="mx-auto mt-2 h-auto" 
                 />
               </div>
             )}
             
             {/* Desktop Summary Viewer */}
-            {summaryData && (
+            {showSummary && summaryData && (
               <div className="hidden lg:block lg:w-1/2 p-4 overflow-auto">
                 <SummaryViewer 
                   summary={summaryData.summary_text} 
-                  pdfSummaryId={chat.pdf_summary_id}
+                  pdfSummaryId={chat?.pdf_summary_id}
                   className="mx-auto" 
                 />
               </div>
