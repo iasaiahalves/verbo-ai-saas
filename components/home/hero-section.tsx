@@ -4,6 +4,7 @@ import { MotionDiv, MotionH1, MotionH2, MotionSection, MotionSpan } from "@/comp
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { containerVariants, itemVariants } from "@/utils/constants";
+import { useAuth } from "@clerk/nextjs";
 import { ArrowRight, Loader2, Sparkles } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { useState } from "react";
@@ -21,10 +22,15 @@ const buttonVariants = {
 export default function HeroSection() {
   const router = useRouter();
   const [isLoading, setIsLoading] = useState(false);
+  const { isSignedIn } = useAuth();
 
   const handleNavigate = () => {
     setIsLoading(true);
-    router.push('/pricing');
+    if (isSignedIn) {
+      router.push('/upload');
+    } else {
+      router.push('/sign-up');
+    }
   };
   return (
     <MotionSection
@@ -67,7 +73,7 @@ export default function HeroSection() {
           disabled={isLoading}
         >
           <div className="flex gap-2 items-center">
-            <span>Try Verbo</span>
+            <span>{isSignedIn ? "Upload a PDF" : "Try Verbo"}</span>
             {isLoading ? (
               <Loader2 className="animate-spin" />
             ) : (

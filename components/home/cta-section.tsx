@@ -1,5 +1,6 @@
 'use client';
 
+import { useAuth } from "@clerk/nextjs";
 import { ArrowRight, Loader2 } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { useState } from "react";
@@ -8,10 +9,15 @@ import { Button } from "../ui/button";
 export default function CTASection() {
   const router = useRouter();
   const [isLoading, setIsLoading] = useState(false);
-
+  const { isSignedIn } = useAuth();
+  
   const handleNavigate = () => {
     setIsLoading(true);
-    router.push('/pricing');
+    if (isSignedIn) {
+      router.push('/upload');
+    } else {
+      router.push('/sign-up');
+    }
   };
 
   return (
@@ -33,7 +39,8 @@ export default function CTASection() {
                 disabled={isLoading}
               >
                 <div className="flex items-center justify-center">
-                  Get Started{' '}
+                <span>{isSignedIn ? "Upload a PDF" : "Get Started"}</span>
+                
                   {isLoading ? (
                     <Loader2 className="ml-2 h-4 w-4 animate-spin" />
                   ) : (
