@@ -60,7 +60,7 @@ const PricingCard = ({ name, price, description, items, paymentLink, id }: Price
     
     className="relative w-full max-w-lg hover:scale-105 hover:transition-all duration-300">
     <div className={cn(
-      "relative flex flex-col h-full gap-4 lg:gap-8 z-10 p-8 rounded-xl border-[1px] border-gray-500/20 rounded-2xl",
+      "relative flex flex-col h-full gap-4 lg:gap-8 z-10 p-8 border-[1px] border-gray-500/20 rounded-2xl",
       
       id ==='pro' && 'border-rose-500 gap-5 border-2'
     )}
@@ -107,13 +107,12 @@ const PricingCard = ({ name, price, description, items, paymentLink, id }: Price
 };
 
 export default function PricingSection() {
-  return (
-    <MotionSection
+  return (    <MotionSection
       variants={containerVariants}
       initial="hidden"
       whileInView="visible"
       viewport={{ once: true, margin: '-100px' }}
-      className="relative overflow-hidden" id="pricing">
+      className="relative overflow-hidden">
       <div className="py-12 lg:py-24 max-w-5xl mx-auto px-4 sm:px-6 lg:px-8 lg:pt-12">
         <MotionDiv
           variants={itemVariants}

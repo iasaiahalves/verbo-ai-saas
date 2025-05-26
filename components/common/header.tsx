@@ -14,9 +14,8 @@ export default function Header() {
             Verbo
           </span>
         </NavigationLink>
-      </div>
-      <div className="flex lg:justify-center gap-4 lg:gap-12 lg:items-center">
-        <NavigationLink href="/#pricing">Pricing</NavigationLink>
+      </div>      <div className="flex lg:justify-center gap-4 lg:gap-12 lg:items-center">
+        <NavigationLink href="/pricing">Pricing</NavigationLink>
         <SignedIn>
           <NavigationLink href="/dashboard">
             Your Summaries
@@ -24,7 +23,7 @@ export default function Header() {
           <ChatNavLink />
         </SignedIn>
         
-      </div>      <div className="flex lg:justify-end lg:flex-1">
+      </div><div className="flex lg:justify-end lg:flex-1">
         <SignedIn>
           <div className="flex gap-2 items-center">
             <NavigationLink href="/upload" className="">

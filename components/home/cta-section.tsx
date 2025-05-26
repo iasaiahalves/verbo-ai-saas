@@ -17,8 +17,7 @@ export default function CTASection() {
               <Button
                 size="lg"
                 variant={'link'}
-                className="w-full min-[400px]:w-auto bg-linear-to-r from-slate-900 to-rose-500 hover:from-rose-500 hover:to-slate-900 hover:text-white text-white transition-all duration-300 ">
-                <Link href="/#pricing" className="flex items-center justify-center">Get Started{' '}
+                className="w-full min-[400px]:w-auto bg-linear-to-r from-slate-900 to-rose-500 hover:from-rose-500 hover:to-slate-900 hover:text-white text-white transition-all duration-300 ">                <Link href="/pricing" className="flex items-center justify-center">Get Started{' '}
                   
                 <ArrowRight className="ml-2 h-4 w-4 animate-pulse" />
                 </Link>

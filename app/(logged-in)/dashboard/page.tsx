@@ -45,10 +45,9 @@ export default async function DashboardPage() {  const user = await currentUser(
             </div>
           </div>
           <div className="mb-6">
-            <div className="bg-rose-50 border border-rose-200 rounded-lg p-4 text-rose-800">
-              <p className="text-sm">
+            <div className="bg-rose-50 border border-rose-200 rounded-lg p-4 text-rose-800">              <p className="text-sm">
                 You've reached the limit of {uploadLimit} uploads on the Basic plan.
-                <Link href="/#pricing" className="text-rose-800 underline font-medium unerline-offset-4 inline-flex items-center">
+                <Link href="/pricing" className="text-rose-800 underline font-medium unerline-offset-4 inline-flex items-center">
                   Click here to upgrade to Pro{' '}<ArrowRight className="w-4 h-4 inline-block" /></Link>{' '}
                 for unlimited uploads.
               </p>
