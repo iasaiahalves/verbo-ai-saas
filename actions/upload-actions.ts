@@ -1,6 +1,7 @@
 'use server';
 
 import { getDbConnection } from "@/lib/db";
+import { generateSummaryFromGemini } from "@/lib/geminiai";
 import { fetchAndExtractPdfText } from "@/lib/langchain";
 import { generateSummaryFromOpenRouter } from "@/lib/openai";
 import { formatFileNameAsTitle } from "@/utils/format-utils";
@@ -56,7 +57,7 @@ export async function generatePdfSummary(uploadResponse: [{
 
     let summary;
     try {
-      summary = await generateSummaryFromOpenRouter(pdfText);
+      summary = await generateSummaryFromGemini(pdfText);
       console.log({ summary });
     } catch (error: any) {
       console.log(error);

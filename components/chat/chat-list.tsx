@@ -3,14 +3,14 @@
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
 import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog';
-import { Chat, deleteChat } from '@/lib/chat';
+import { Chat as ChatType, deleteChat } from '@/lib/chat';
 import { formatDistanceToNow } from 'date-fns';
 import { MessageSquare, Trash2 } from 'lucide-react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { useState } from 'react';
 
-export function ChatList({ chats }: { chats: Chat[] }) {
+export function ChatList({ chats }: { chats: ChatType[] }) {
   if (chats.length === 0) {
     return (
       <div className="text-center py-8">
@@ -28,7 +28,7 @@ export function ChatList({ chats }: { chats: Chat[] }) {
   );
 }
 
-function ChatCard({ chat }: { chat: Chat }) {
+function ChatCard({ chat }: { chat: ChatType }) {
   const router = useRouter();
   const [isDeleting, setIsDeleting] = useState(false);
   const [showDeleteDialog, setShowDeleteDialog] = useState(false);
@@ -70,7 +70,7 @@ function ChatCard({ chat }: { chat: Chat }) {
         </div>
         
         <p className="text-sm text-muted-foreground mt-2">
-          {chat.summary_title || chat.file_name || 
+          {(chat as any).summary_title || (chat as any).file_name || 
            (chat.pdf_summary_id ? `Chat about PDF ${chat.pdf_summary_id.substring(0, 8)}...` : 'New Chat')}
         </p>
         
@@ -105,4 +105,22 @@ function ChatCard({ chat }: { chat: Chat }) {
       </Dialog>
     </>
   );
+}
+
+export interface Message {
+  id: string;
+  content: string;
+  created_at: string | Date;
+  // Add other fields as needed
+}
+
+export interface Chat {
+  id: string;
+  title: string;
+  summary_title?: string;
+  file_name?: string;
+  pdf_summary_id?: string;
+  messages: Message[];
+  created_at: string | Date;
+  updated_at: string | Date;
 }
