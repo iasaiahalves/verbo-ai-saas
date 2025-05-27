@@ -61,11 +61,12 @@ export function ChatMessage({
 
       {/* Message bubble */}
       <div className={cn(
-        "flex-1 max-w-[75%] relative",
+        "flex-1 relative",
         isUser ? "text-right" : "text-left"
       )}>
         <Card className={cn(
-          "relative p-4 shadow-lg border-0 transition-all duration-200 group-hover:shadow-xl",
+          "relative p-4 shadow-lg border-0 transition-all duration-200 group-hover:shadow-xl inline-block",
+          "max-w-[75%] min-w-[60px]",
           isUser 
             ? "bg-gradient-to-br from-rose-500 to-pink-600 text-white rounded-3xl rounded-tr-lg ml-auto" 
             : "bg-white dark:bg-gray-800/95 backdrop-blur-sm rounded-3xl rounded-tl-lg border border-gray-100 dark:border-gray-700/50 shadow-gray-200/50 dark:shadow-gray-900/50"
@@ -136,19 +137,6 @@ export function ChatMessage({
               : "left-0 -translate-x-1 bg-white dark:bg-gray-800 border-l border-t border-gray-100 dark:border-gray-700/50"
           )}></div>
         </Card>
-
-        {/* Timestamp */}
-        {message.created_at && (
-          <div className={cn(
-            "text-xs text-gray-500 dark:text-gray-400 mt-2 opacity-0 group-hover:opacity-100 transition-opacity duration-200",
-            isUser ? "text-right mr-4" : "text-left ml-4"
-          )}>
-            {message.created_at.toLocaleTimeString([], { 
-              hour: '2-digit', 
-              minute: '2-digit' 
-            })}
-          </div>
-        )}
       </div>
     </div>
   );
