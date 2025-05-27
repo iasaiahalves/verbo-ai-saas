@@ -35,7 +35,7 @@ export default function UploadForm() {
       });
       setIsLoading(false);
     },
-    onUploadBegin: (fileName: string) => { // 'fileName' here is the filename (string)
+    onUploadBegin: (fileName: string) => {
       console.log("upload has begun for", fileName);
     },
   });
@@ -62,10 +62,17 @@ export default function UploadForm() {
         return;
       }
       
-      // Create a toast ID to manage the loading state
-      const uploadToastId = toast.loading('Uploading PDF...', {
-        description: 'We are uploading your PDF',
-      });
+      // Show different toast messages based on file size
+      const isLargeFile = file.size > 5 * 1024 * 1024; // 5MB threshold
+      
+      const uploadToastId = toast.loading(
+        isLargeFile ? 'Uploading large PDF...' : 'Uploading PDF...', 
+        {
+          description: isLargeFile 
+            ? 'Large file detected - this may take longer than usual'
+            : 'We are uploading your PDF',
+        }
+      );
 
       // Upload the file to uploadthing
       const resp = await startUpload([file]);
@@ -82,10 +89,16 @@ export default function UploadForm() {
       }
       console.log(resp);
 
-      // Create a new toast ID for processing
-      const processingToastId = toast.loading('Processing PDF', {
-        description: 'Hang tight! Our AI is reading through your document...',
-      });
+      // Create a new toast ID for processing with appropriate messaging
+      const processingToastId = toast.loading(
+        isLargeFile ? 'Processing large PDF...' : 'Processing PDF', 
+        {
+          description: isLargeFile 
+            ? 'Large documents take more time - please be patient while our AI reads through your document...'
+            : 'Hang tight! Our AI is reading through your document...',
+          duration: isLargeFile ? 0 : undefined, // Don't auto-dismiss for large files
+        }
+      );
 
       // Parse the pdf using lang chain
       const result = await generatePdfSummary([{
@@ -126,14 +139,11 @@ export default function UploadForm() {
           // Show success toast that will persist during navigation
           toast.success('Summary saved! Redirecting...', {
             description: 'Taking you to your summary now!',
-            duration: 2000, // Shorter duration since we're redirecting
+            duration: 2000,
           });
           
           // Immediate redirect without waiting
           router.push(`/summaries/${storeResult.data.id}`);
-          
-          // Alternative: Use router.replace for a cleaner navigation history
-          // router.replace(`/summaries/${storeResult.data.id}`);
         } else {
           toast.error('Failed to save summary', {
             description: 'Unable to retrieve summary ID',
@@ -159,7 +169,7 @@ export default function UploadForm() {
   
   return (
     <div className="flex flex-col gap-8 w-full max-w-2xl mx-auto">
-        <div className="relative">
+      <div className="relative">
         <div className="absolute inset-0 flex items-center" aria-hidden="true">
           <div className="w-full border-t border-gray-200 dark:border-gray-800" />
         </div>
@@ -169,21 +179,20 @@ export default function UploadForm() {
           </span>
         </div>
       </div>
+      
       <UploadFormInput isLoading={isLoading} ref={formRef} onSubmit={handleSubmit} />
+      
       {isLoading && (
         <>
-        <div className="relative">
-          <div
-            className="absolute inset-0 flex items-center"
-            aria-hidden="true"
-          >
-            <div className="w-full border-t border-gray-200 dark:border-gray-800" />
-          </div>
-          <div className="relative flex justify-center">
-            <span className="bg-background px-3 text-muted-foreground text-sm">
-              Processing
-            </span>
-          </div>
+          <div className="relative">
+            <div className="absolute inset-0 flex items-center" aria-hidden="true">
+              <div className="w-full border-t border-gray-200 dark:border-gray-800" />
+            </div>
+            <div className="relative flex justify-center">
+              <span className="bg-background px-3 text-muted-foreground text-sm">
+                Processing
+              </span>
+            </div>
           </div>
           <LoadingSkeleton />
         </>
