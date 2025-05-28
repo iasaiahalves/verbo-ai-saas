@@ -1,14 +1,77 @@
 import { SUMMARY_SYSTEM_PROMPT } from '@/utils/prompts';
 import OpenAI from 'openai';
 
-// Access your OpenRouter API key as an environment variable
-const OPENROUTER_API_KEY = process.env.DEEPSEEKV3_API_KEY || '';
+// LLM Provider Configuration Interface
+interface LLMProviderConfig {
+  name: string;
+  baseURL: string;
+  apiKeyEnvVar: string;
+  model: string;
+  maxContextTokens: number;
+  safeContextTokens: number;
+  outputTokens: number;
+  charsPerToken: number;
+  temperature: number;
+  frequencyPenalty?: number;
+  presencePenalty?: number;
+  topP?: number;
+}
 
-// Initialize the OpenAI client pointed to OpenRouter
-const openai = new OpenAI({
-  baseURL: 'https://openrouter.ai/api/v1',
-  apiKey: OPENROUTER_API_KEY,
-});
+// LLM Providers Registry
+const LLM_PROVIDERS: { [key: string]: LLMProviderConfig } = {
+  deepseek: {
+    name: 'DeepSeek',
+    baseURL: 'https://openrouter.ai/api/v1',
+    apiKeyEnvVar: 'DEEPSEEKV3_API_KEY',
+    model: 'deepseek/deepseek-chat-v3-0324:free',
+    maxContextTokens: 163840,
+    safeContextTokens: 150000,
+    outputTokens: 8192,
+    charsPerToken: 3.5,
+    temperature: 0.3,
+    frequencyPenalty: 0.15,
+    presencePenalty: 0.1,
+    topP: 0.85
+  },
+  gemini: {
+    name: 'Gemini',
+    baseURL: 'https://generativelanguage.googleapis.com/v1',
+    apiKeyEnvVar: 'GEMINI_API_KEY',
+    model: 'gemini-1.5-pro',
+    maxContextTokens: 128000,
+    safeContextTokens: 120000,
+    outputTokens: 8192,
+    charsPerToken: 3.75,
+    temperature: 0.7
+  },
+  // Add more providers here as needed
+};
+
+// Get the active provider configuration
+function getActiveProvider(preferredProvider?: string): LLMProviderConfig {
+  // Get the preferred provider from environment or use default
+  const configuredProvider = preferredProvider || process.env.DEFAULT_LLM_PROVIDER || 'deepseek';
+  const provider = LLM_PROVIDERS[configuredProvider];
+  
+  if (!provider) {
+    throw new Error(`Provider ${configuredProvider} not found in configuration`);
+  }
+
+  const apiKey = process.env[provider.apiKeyEnvVar];
+  if (!apiKey) {
+    throw new Error(`API key not found for provider ${provider.name}`);
+  }
+
+  return provider;
+}
+
+// Initialize the OpenAI client with provider configuration
+function initializeClient(provider: LLMProviderConfig) {
+  return new OpenAI({
+    baseURL: provider.baseURL,
+    apiKey: process.env[provider.apiKeyEnvVar] || '',
+  });
+}
 
 // Enhanced configuration optimized for DeepSeek V3's massive context window
 const DEEPSEEK_CONFIG = {
@@ -334,16 +397,17 @@ function createEnhancedSemanticChunks(text: string, maxChars: number, overlap: n
 }
 
 // Enhanced API call with quality validation
-async function callDeepSeekAPI(
+async function callLLMAPI(
   content: string, 
   systemPrompt: string,
+  provider: LLMProviderConfig,
   isLargeContent: boolean = false,
   isFinalSummary: boolean = false,
   passType: string = 'standard'
 ): Promise<string> {
-  const estimatedTokens = Math.ceil(content.length / DEEPSEEK_CONFIG.CHARS_PER_TOKEN);
+  const estimatedTokens = Math.ceil(content.length / provider.charsPerToken);
   
-  if (estimatedTokens > DEEPSEEK_CONFIG.SAFE_CONTEXT_TOKENS) {
+  if (estimatedTokens > provider.safeContextTokens) {
     console.warn(`⚠️ Content approaching token limit: ${estimatedTokens.toLocaleString()} tokens`);
     throw new Error(SummaryError.CONTEXT_EXCEEDED);
   }
@@ -353,6 +417,7 @@ async function callDeepSeekAPI(
     (estimatedTokens > 50000 ? DEEPSEEK_CONFIG.RETRY_CONFIG.timeouts.medium : DEEPSEEK_CONFIG.RETRY_CONFIG.timeouts.small);
   
   let lastError: any;
+  const client = initializeClient(provider);
   
   for (let attempt = 0; attempt <= DEEPSEEK_CONFIG.RETRY_CONFIG.maxRetries; attempt++) {
     const controller = new AbortController();
@@ -361,17 +426,17 @@ async function callDeepSeekAPI(
     try {
       console.log(`🔄 ${passType} API call attempt ${attempt + 1}/${DEEPSEEK_CONFIG.RETRY_CONFIG.maxRetries + 1} (${estimatedTokens.toLocaleString()} tokens, ${timeout/1000}s timeout)`);
       
-      const completion = await openai.chat.completions.create({
-        model: "deepseek/deepseek-chat-v3-0324:free",
+      const completion = await client.chat.completions.create({
+        model: provider.model,
         messages: [
           { role: 'system', content: systemPrompt },
           { role: 'user', content: content }
         ],
-        temperature: isFinalSummary ? 0.2 : 0.3, // Lower temperature for better consistency
-        max_tokens: isFinalSummary ? DEEPSEEK_CONFIG.OUTPUT_TOKENS : Math.min(6000, DEEPSEEK_CONFIG.OUTPUT_TOKENS),
-        top_p: 0.85,  // Slightly more focused
-        frequency_penalty: 0.15,
-        presence_penalty: 0.1
+        temperature: isFinalSummary ? 0.2 : provider.temperature,
+        max_tokens: isFinalSummary ? provider.outputTokens : Math.min(6000, provider.outputTokens),
+        top_p: provider.topP,
+        frequency_penalty: provider.frequencyPenalty,
+        presence_penalty: provider.presencePenalty
       }, { 
         signal: controller.signal,
         timeout: timeout 
@@ -389,7 +454,7 @@ async function callDeepSeekAPI(
       
       // Enhanced coherence validation
       if (DEEPSEEK_CONFIG.QUALITY_VALIDATION.coherenceChecks && result) {
-        const sentences = result.split(/[.!?]+/).filter(s => s.trim().length > 15);
+        const sentences = result.split(/[.!?]+/).filter((s: string) => s.trim().length > 15);
         const hasProperStructure = result.includes('##') || result.includes('**') || result.includes('\n\n');
         
         if (sentences.length < 5 || !hasProperStructure) {
@@ -400,9 +465,9 @@ async function callDeepSeekAPI(
         }
       }
       
-      console.log(`✅ ${passType} API call successful: ${result.length} chars generated`);
+      console.log(`✅ ${passType} API call successful: ${result?.length} chars generated`);
       clearTimeout(timeoutId);
-      return result;
+      return result || '';
       
     } catch (error: any) {
       clearTimeout(timeoutId);
@@ -467,9 +532,10 @@ Structure your summary with:
 3. Key findings and data points
 4. Important conclusions/recommendations`;
 
-  return await callDeepSeekAPI(
+  return await callLLMAPI(
     text, 
     SUMMARY_SYSTEM_PROMPT + '\n\n' + instruction, 
+    getActiveProvider(),
     true, 
     true,
     'Enhanced Single-Pass'
@@ -501,9 +567,10 @@ REQUIREMENTS:
 
 Document context: Topics include ${analysis.keyTopics.slice(0, 5).join(', ')}`;
 
-    const summary = await callDeepSeekAPI(
+    const summary = await callLLMAPI(
       chunks[i], 
       SUMMARY_SYSTEM_PROMPT + '\n\n' + instruction,
+      getActiveProvider(),
       chunks[i].length > 200000,
       false,
       `MAP-${i + 1}`
@@ -533,9 +600,10 @@ CRITICAL REQUIREMENTS for 95%+ quality:
 
 Final summary should be comprehensive yet readable, capturing the complete scope of the original document.`;
 
-  return await callDeepSeekAPI(
+  return await callLLMAPI(
     combinedText, 
     SUMMARY_SYSTEM_PROMPT + '\n\n' + finalInstruction, 
+    getActiveProvider(),
     true, 
     true,
     'REDUCE Phase'
@@ -558,9 +626,10 @@ REFINEMENT OBJECTIVES:
 
 The refined summary should be as informative as the original but significantly more polished and executive-ready.`;
 
-  return await callDeepSeekAPI(
+  return await callLLMAPI(
     summary,
     SUMMARY_SYSTEM_PROMPT + '\n\n' + instruction,
+    getActiveProvider(),
     true,
     true,
     'Executive Refinement'
@@ -621,9 +690,10 @@ REQUIREMENTS:
 
 Document context: Topics include ${analysis.keyTopics.slice(0, 5).join(', ')}`;
 
-    const summary = await callDeepSeekAPI(
+    const summary = await callLLMAPI(
       chunks[i],
       SUMMARY_SYSTEM_PROMPT + '\n\n' + instruction,
+      getActiveProvider(),
       chunks[i].length > 80000,
       false,
       `LEVEL1-${i + 1}`
@@ -660,9 +730,10 @@ REQUIREMENTS:
 
 This is an intermediate synthesis for a multi-level summarization process.`;
 
-    const batchSummary = await callDeepSeekAPI(
+    const batchSummary = await callLLMAPI(
       combinedBatch,
       SUMMARY_SYSTEM_PROMPT + '\n\n' + instruction,
+      getActiveProvider(),
       combinedBatch.length > 100000,
       false,
       `LEVEL2-${Math.floor(i/batchSize) + 1}`
@@ -691,9 +762,10 @@ CRITICAL REQUIREMENTS for 95%+ quality:
 
 The final summary should be comprehensive yet clear, capturing the complete scope and insights of the original document.`;
 
-  return await callDeepSeekAPI(
+  return await callLLMAPI(
     finalCombinedText,
     SUMMARY_SYSTEM_PROMPT + '\n\n' + finalInstruction,
+    getActiveProvider(),
     true,
     true,
     'LEVEL3-FINAL'
@@ -847,3 +919,4 @@ async function generateSummaryFromGemini(text: string): Promise<string> {
 
 // Export the main functions
 export { SummaryError };
+
