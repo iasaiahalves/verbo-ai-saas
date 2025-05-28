@@ -57,14 +57,14 @@ export async function generatePdfSummary(uploadResponse: [{
 
     let summary;
     try {
-      summary = await generateSummaryFromGemini(pdfText);
+      summary = await generateSummaryFromOpenRouter(pdfText);
       console.log({ summary });
     } catch (error: any) {
       console.log(error);
       //call llama
       if (error instanceof Error && error.message === 'RATE_LIMIT_EXCEEDED' || error.message === 'CONTENT_TOO_LONG' || error.message === 'REQUEST_TIMEOUT') {
         try {
-          summary = await generateSummaryFromOpenRouter(pdfText);
+          summary = await generateSummaryFromGemini(pdfText);
         } catch (geminiError) {
           console.error('Gemini API failed after Llama-3 quote exceeded', geminiError);
         }

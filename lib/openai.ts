@@ -2,7 +2,7 @@ import { SUMMARY_SYSTEM_PROMPT } from '@/utils/prompts'; // Assuming you still h
 import OpenAI from 'openai';
 
 // Access your OpenRouter API key as an environment variable
-const OPENROUTER_API_KEY = process.env.LLAMA_API_KEY || '';
+const OPENROUTER_API_KEY = process.env.DEEPSEEKV3_API_KEY || '';
 
 // Maximum content length to send in a single request
 // Adjust based on Llama 3.1's context window and OpenRouter's limits
@@ -80,7 +80,7 @@ async function processSingleChunk(chunkText: string, customInstruction?: string)
       `Transform this document into an engaging, easy-to-read summary with contextually relevant emojis and proper markdown formatting:`;
 
     const completion = await openai.chat.completions.create({
-      model: 'meta-llama/llama-3.1-8b-instruct:free', // Specify Llama 3.1 model from OpenRouter
+      model: "deepseek/deepseek-chat-v3-0324:free", 
       messages: [
         {
           role: 'system',
@@ -92,8 +92,8 @@ async function processSingleChunk(chunkText: string, customInstruction?: string)
         },
       ],
       temperature: 0.7,
-      max_tokens: 2000, // Adjust as needed for Llama 3.1
-    }, { signal: controller.signal }); // Pass the signal for timeout
+      max_tokens: 2000,
+    }, { signal: controller.signal }); 
 
     const generatedText = completion.choices[0].message.content;
 
