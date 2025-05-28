@@ -3,7 +3,7 @@
 import { getDbConnection } from "@/lib/db";
 import { generateSummaryFromGemini } from "@/lib/geminiai";
 import { fetchAndExtractPdfText } from "@/lib/langchain";
-import { generateSummaryFromOpenRouter } from "@/lib/openai";
+import { generateSmartSummary } from "@/lib/openai";
 import { formatFileNameAsTitle } from "@/utils/format-utils";
 import { auth } from "@clerk/nextjs/server";
 import { revalidatePath } from "next/cache";
@@ -52,33 +52,96 @@ export async function generatePdfSummary(uploadResponse: [{
   }
 
   try {
+    console.log(`Starting PDF extraction for: ${fileName}`);
     const pdfText = await fetchAndExtractPdfText(pdfUrl);
-    console.log({ pdfText });
+    
+    if (!pdfText || pdfText.trim().length < 100) {
+      return {
+        success: false,
+        message: 'PDF extraction failed or document is empty',
+        data: null,
+      };
+    }
+    
+    console.log(`PDF extraction successful: ${pdfText.length} characters`);
 
     let summary;
+    let processingProvider = 'deepseek'; // Start with DeepSeek by default
+    
     try {
-      summary = await generateSummaryFromOpenRouter(pdfText);
-      console.log({ summary });
+      // Use smart provider selection (prioritizes DeepSeek)
+      summary = await generateSmartSummary(pdfText);
     } catch (error: any) {
-      console.log(error);
-      //call llama
-      if (error instanceof Error && error.message === 'RATE_LIMIT_EXCEEDED' || error.message === 'CONTENT_TOO_LONG' || error.message === 'REQUEST_TIMEOUT') {
+      console.error('DeepSeek summarization error:', error.message);
+      
+      // Specific error handling based on error types
+      if (error.message === 'PDF_TOO_LARGE') {
+        return {
+          success: false,
+          message: 'This PDF is too large to process (exceeds 500 pages)',
+          data: null,
+        };
+      }
+      
+      if (error.message === 'TEXT_EXTRACTION_FAILED') {
+        return {
+          success: false,
+          message: 'Failed to extract readable text from this PDF',
+          data: null,
+        };
+      }
+      
+      if (error.message === 'CONTEXT_WINDOW_EXCEEDED') {
+        console.log('Document exceeds DeepSeek context window, falling back to Gemini');
+        processingProvider = 'gemini';
         try {
           summary = await generateSummaryFromGemini(pdfText);
         } catch (geminiError) {
-          console.error('Gemini API failed after Llama-3 quote exceeded', geminiError);
+          return {
+            success: false,
+            message: 'Document is too large for processing with either provider',
+            data: null,
+          };
         }
-        throw new Error('Failed to generate summary with available AI providers')
+      } else if (['RATE_LIMIT_EXCEEDED', 'CONTENT_TOO_LONG', 'REQUEST_TIMEOUT', 
+           'EMPTY_RESPONSE', 'API_ERROR', 'PROCESSING_FAILED'].includes(error.message)) {
+        // For recoverable errors, try Gemini as fallback
+        try {
+          console.log('Falling back to Gemini API due to DeepSeek error:', error.message);
+          processingProvider = 'gemini';
+          summary = await generateSummaryFromGemini(pdfText);
+        } catch (geminiError: any) {
+          console.error('Gemini API fallback failed:', geminiError);
+          
+          return {
+            success: false,
+            message: `Summary generation failed with both providers. ${
+              error.message === 'RATE_LIMIT_EXCEEDED' ? 
+                'API rate limits exceeded, please try again later.' : 
+                'Please try again or upload a different document.'
+            }`,
+            data: null,
+          };
+        }
+      } else {
+        // For any other errors
+        return {
+          success: false,
+          message: `Failed to generate summary: ${error.message}`,
+          data: null,
+        };
       }
     }
 
     if (!summary) {
       return {
-          success: false,
-          message: 'Failed to generate summary',
-          data: null,
-      }
+        success: false,
+        message: 'Failed to generate summary (empty response)',
+        data: null,
+      };
     }
+    
+    console.log(`Summary generated successfully using ${processingProvider}`);
     const formattedFileName = formatFileNameAsTitle(fileName);
 
     return {
@@ -87,14 +150,15 @@ export async function generatePdfSummary(uploadResponse: [{
       data: {
         title: formattedFileName,
         summary,
+        provider: processingProvider // Include which provider was used
       }
-    }
+    };
 
   } catch (err) {
-    console.error('Error while extracting PDF:', err);
+    console.error('Unhandled error in PDF processing:', err);
     return {
       success: false,
-      message: 'PDF processing failed',
+      message: err instanceof Error ? `PDF processing failed: ${err.message}` : 'PDF processing failed',
       data: null,
     };
   }
